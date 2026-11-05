@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#201e1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>Kerf — Cut Design Studio</title>
 <link rel="stylesheet" href="fonts/uifont.css">
 <link rel="stylesheet" href="css/app.css">
@@ -11,6 +14,7 @@
 <div id="app">
   <header class="topbar">
     <div class="brand"><span class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20 L14 4 L17 6 L7 22 Z" fill="currentColor"/><path d="M15 3 l4 2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><b>Kerf</b><span class="sub">cut design studio</span></div>
+    <button class="icon-btn menu-btn" id="menu-btn" data-action="toggleMenus" title="Menu" aria-label="Menu">☰</button>
     <nav class="menus" id="menus"></nav>
     <div class="tb-group">
       <button class="icon-btn" data-action="undo" title="Undo (Ctrl+Z)" id="btn-undo"></button>
@@ -23,6 +27,7 @@
       <button class="text-btn" data-action="zoomFit" title="Fit mat (Ctrl 0)">Fit</button>
     </div>
     <div class="spacer"></div>
+    <div class="tb-break"></div>
     <label class="tb-select" title="Material sets the cut rules">
       <span>Material</span><select id="sel-material"></select>
     </label>
@@ -30,7 +35,7 @@
       <span>Mat</span><select id="sel-mat"></select>
     </label>
     <button class="status-pill" id="status-pill" data-action="showCheck" title="Cut check status">Checking…</button>
-    <button class="primary" data-action="showExport">Export for Design Space</button>
+    <button class="primary" data-action="showExport"><span class="long">Export for Design Space</span><span class="short">Export</span></button>
   </header>
 
   <aside class="toolbar" id="toolbar"></aside>
@@ -39,6 +44,9 @@
     <canvas id="canvas"></canvas>
     <div class="tool-options" id="tool-options"></div>
     <div class="drop-hint" id="drop-hint">Drop images, SVGs, fonts or .kerf projects</div>
+    <div class="sel-bar" id="sel-bar" hidden>
+      <button data-action="duplicate">Duplicate</button><button data-action="delete">Delete</button><button data-action="openSheet">Edit</button><button data-action="deselect" aria-label="Deselect">✕</button>
+    </div>
     <footer class="statusbar"><span id="st-cursor">x 0.00" y 0.00"</span><span id="st-sel"></span><span class="grow"></span><span id="st-tip">Tip: drop an image here, then remove its background and trace it.</span></footer>
   </main>
 
@@ -48,6 +56,7 @@
       <button role="tab" data-tab="layers">Layers</button>
       <button role="tab" data-tab="check">Cut check <span class="badge" id="tab-badge"></span></button>
       <button role="tab" data-tab="export">Export</button>
+      <button class="sheet-toggle" data-action="toggleSheet" aria-label="Show or hide panel">▴</button>
     </div>
     <div class="panel" data-panel="design" id="panel-design"></div>
     <div class="panel" data-panel="layers" id="panel-layers" hidden></div>

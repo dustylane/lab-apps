@@ -545,6 +545,83 @@
     });
   });
 
+
+  describe('Touch & phone layout', () => {
+    const tptr = (type, p, id) => ptr(type, p, { pointerType: 'touch', pointerId: id, isPrimary: id === 1 });
+    it('pinch zooms around the fingers and two-finger drag pans, without moving the shape under the first finger', async () => {
+      await fresh(); const r = rect(4, 4, 3, 3); A.zoomFitMat(); const x0 = r.bounds.x, z0 = A.view.zoom;
+      const c = pt(5.5, 5.5);
+      tptr('pointerdown', c, 1); tptr('pointermove', c.add(new P.Point(4, 0)), 1);
+      const a = c.subtract(new P.Point(inch(1), 0)), b = c.add(new P.Point(inch(1), 0));
+      tptr('pointerdown', b, 2);
+      const anchor = A.view.viewToProject(A.view.projectToView(c.add(new P.Point(2, 0)).add(b).divide(2)));
+      for (let i = 1; i <= 5; i++) { tptr('pointermove', a.subtract(new P.Point(inch(0.2 * i), 0)), 1); tptr('pointermove', b.add(new P.Point(inch(0.2 * i), 0)), 2); }
+      tptr('pointerup', a, 1); tptr('pointerup', b, 2); await sleep(5);
+      expect(A.view.zoom).toBeGreaterThan(z0 * 1.5);
+      expect(Math.abs(r.bounds.x - x0)).toBeLessThan(0.01);
+      expect(A.history.canUndo()).toBeTruthy();
+      const cx = A.view.center.x; const v = A.view.projectToView(A.view.center);
+      const s1 = A.view.viewToProject(v), s2 = A.view.viewToProject(v.add(new P.Point(80, 0)));
+      tptr('pointerdown', s1, 1); tptr('pointerdown', s2, 2);
+      const shift = 60 / A.view.zoom;
+      for (let i = 1; i <= 4; i++) { tptr('pointermove', s1.add(new P.Point(shift * i / 4, 0)), 1); tptr('pointermove', s2.add(new P.Point(shift * i / 4, 0)), 2); }
+      tptr('pointerup', s1, 1); tptr('pointerup', s2, 2);
+      expect(A.view.center.x).toBeLessThan(cx - 30 / A.view.zoom);
+      expect(T.pinch).toBe(null); expect(T.touches.size).toBe(0); noErrors();
+    });
+    it('touch gets bigger handles, finger drags move, and double-tap opens text editing', async () => {
+      await fresh(); const r = rect(3, 3, 2, 2);
+      tptr('pointerdown', pt(4, 4), 1); tptr('pointerup', pt(4, 4), 1); await sleep(5);
+      expect(A.selection.length).toBe(1); expect(T.touchUI).toBeTruthy(); expect(T.hr).toBeGreaterThan(10);
+      // grab the corner handle from a finger's distance away (12 px)
+      const corner = A.view.projectToView(r.bounds.bottomRight).add(new P.Point(12, 12));
+      expect(T.handleAt(corner)).toBe('bottomRight');
+      await sleep(450); tptr('pointerdown', pt(4, 4), 1); for (let i = 1; i <= 4; i++) tptr('pointermove', pt(4 + i * 0.25, 4), i && 1); tptr('pointerup', pt(5, 4), 1);
+      expect(Math.abs(r.bounds.x - inch(4))).toBeLessThan(inch(0.4)); // smart guides may snap a little at small zoom
+      const g = A.addText({ text: 'Tap' }, pt(3, 8)); A.commit('t'); await sleep(20);
+      let edited = null; const off = A.on('edit-text', x => { edited = x; });
+      const c = g.bounds.topLeft.add(new P.Point(31 * g.bounds.width / 188.64, g.bounds.height * 0.6)); await sleep(400);
+      tptr('pointerdown', c, 1); tptr('pointerup', c, 1); tptr('pointerdown', c, 1); tptr('pointerup', c, 1); await sleep(40);
+      expect(edited).toBe(g); if (typeof off === 'function') off();
+      T.setTouchUI(false); expect(A.hitTol).toBe(4); noErrors();
+    });
+    it('the text tool waits for the finger to lift, so a pinch never adds text', async () => {
+      await fresh(); T.setTool('text'); const n = A.designItems().length; const c = pt(6, 6);
+      tptr('pointerdown', c, 1); tptr('pointerdown', c.add(new P.Point(inch(1), 0)), 2);
+      tptr('pointermove', c.add(new P.Point(inch(2), 0)), 2); tptr('pointerup', c, 1); tptr('pointerup', c.add(new P.Point(inch(2), 0)), 2);
+      expect(A.designItems().length).toBe(n);
+      tptr('pointerdown', c, 1); tptr('pointerup', c, 1); await sleep(40);
+      expect(A.designItems().length).toBe(n + 1); T.setTool('select'); T.setTouchUI(false); noErrors();
+    });
+    it('phone controls: panel sheet, selection bar, menu sheet, pen Done and point buttons', async () => {
+      await fresh(); const appEl = $('#app');
+      UI.showTab('layers'); expect(appEl.classList.contains('sheet-open')).toBeTruthy();
+      UI.run('toggleSheet'); expect(appEl.classList.contains('sheet-open')).toBeFalsy();
+      rect(2, 2, 2, 2); A.select(A.designItems()); expect($('#sel-bar').hidden).toBeFalsy();
+      UI.run('openSheet'); expect(UI.tab).toBe('design'); expect($('#sel-bar').hidden).toBeTruthy();
+      UI.run('toggleSheet');
+      $('#sel-bar [data-action="duplicate"]').click(); expect(A.designItems().length).toBe(2);
+      $('#menu-btn').click(); expect(appEl.classList.contains('menus-open')).toBeTruthy();
+      $('.dropdown [data-action="deselect"]').click(); expect(appEl.classList.contains('menus-open')).toBeFalsy();
+      T.setTool('pen'); await click(pt(8, 2)); await click(pt(10, 2)); await click(pt(9, 4));
+      $('#tool-options [data-action="penDone"]').click(); expect(A.designItems().length).toBe(3);
+      T.setTool('direct'); await click(pt(3, 3.99)); await click(T.direct.path.bounds.topLeft.add(new P.Point(0.1, 0.1)));
+      expect(T.direct.segs.size).toBe(1); const dp = T.direct.path; const before = dp.segments.length;
+      $('#tool-options [data-action="pointSmooth"]').click(); expect(dp.segments.some(sg => !sg.handleIn.isZero())).toBeTruthy();
+      $('#tool-options [data-action="pointDelete"]').click(); expect(dp.segments.length).toBe(before - 1);
+      T.setTool('select'); noErrors();
+    });
+    it('on a phone-sized window the layout fits with no sideways scrolling', async () => {
+      await fresh();
+      if (!UI.isPhone()) { expect(UI.isPhone()).toBeFalsy(); return; }
+      const d = W.document.documentElement; expect(d.scrollWidth).toBeLessThan(W.innerWidth + 1);
+      const tb = $('#toolbar').getBoundingClientRect(); expect(tb.bottom).toBeLessThan(W.innerHeight + 1);
+      UI.showTab('design'); await sleep(50);
+      expect(A.view.viewSize.height).toBeGreaterThan(80); expect(A.canvas.getBoundingClientRect().bottom).toBeLessThan($('#tabs').getBoundingClientRect().top + 1);
+      UI.run('toggleSheet'); noErrors();
+    });
+  });
+
   describe('Robustness', () => {
     it('every menu and panel button runs without errors', async () => {
       await fresh(); rect(1, 1, 2, 2, '#ff0000'); rect(2, 2, 2, 2, '#0000ff'); A.addText({ text: 'All', family: 'Bungee' }, pt(5, 1));

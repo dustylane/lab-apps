@@ -170,3 +170,96 @@ ol.steps b { color: var(--text); }
 .modal-card .acts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
 
 @media (max-width: 1100px) { #app { grid-template-columns: 48px 1fr 284px; } .brand .sub, .tb-select span { display: none; } }
+
+/* ---------- phones & small tablets ---------- */
+.menu-btn, .tb-break, .primary .short, .sheet-toggle, .sel-bar { display: none; }
+button, select, input, label { touch-action: manipulation; }
+@media (hover: none) { .layer .ops { opacity: 1; } }
+
+@media (max-width: 760px) {
+  html, body { font-size: 14px; }
+  #app { height: 100vh; height: 100dvh; grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto auto;
+    grid-template-areas: "top" "stage" "side" "tools"; }
+
+  /* top bar: two rows (menu, undo, status, export) / (material, mat, zoom) */
+  .topbar { flex-wrap: wrap; gap: 6px; padding: 6px 8px; padding-top: max(6px, env(safe-area-inset-top)); }
+  .brand b, .brand .sub { display: none; }
+  .brand { padding-right: 0; }
+  .menu-btn { display: inline-flex; font-size: 19px; }
+  .icon-btn { width: 40px; height: 40px; }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .tb-break { display: block; flex-basis: 100%; height: 0; order: 5; }
+  .tb-select, .tb-group.zoom { order: 6; }
+  .tb-select { flex: 1 1 0; min-width: 0; }
+  .tb-select span { display: none; }
+  .tb-select select { max-width: none; width: 100%; padding: 8px 6px; font-size: 16px; }
+  .tb-group.zoom #zoom-label { min-width: 40px; font-size: 12px; }
+  .text-btn { padding: 8px 10px; }
+  .status-pill { padding: 8px 10px; max-width: 34vw; overflow: hidden; text-overflow: ellipsis; }
+  .primary { padding: 10px 12px; }
+  .primary .long { display: none; } .primary .short { display: inline; }
+
+  /* menus become a sheet under the ☰ button */
+  .menus { display: none; position: fixed; z-index: 60; left: 8px; right: 8px; top: 54px; max-height: 76vh; overflow-y: auto; flex-direction: column;
+    background: var(--panel); border: 1px solid var(--line-2); border-radius: 12px; padding: 6px; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+  #app.menus-open .menus { display: flex; }
+  .menu > button { width: 100%; text-align: left; padding: 12px; font-weight: 700; }
+  .menu .dropdown { position: static; box-shadow: none; border: 0; background: var(--panel-2); min-width: 0; }
+  .dropdown button { padding: 12px; }
+  .dropdown button kbd { display: none; }
+
+  /* tools: one scrollable row along the bottom */
+  .toolbar { flex-direction: row; overflow-x: auto; overflow-y: hidden; padding: 6px 8px; padding-bottom: max(6px, env(safe-area-inset-bottom));
+    border-right: 0; border-top: 1px solid var(--line); gap: 4px; justify-content: flex-start; scrollbar-width: none; }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .tool { width: 44px; height: 44px; flex: 0 0 auto; }
+  .tool svg { width: 22px; height: 22px; }
+  .tool-sep { width: 0; height: 26px; border-top: 0; border-left: 1px solid var(--line); margin: 0 3px; flex: 0 0 auto; }
+  .swatch-tool { margin: 0 0 0 4px; width: 40px; height: 40px; flex: 0 0 auto; }
+  .swatch-tool input { width: 56px; height: 56px; margin: -8px; }
+
+  /* canvas fills the stage; no status bar */
+  .statusbar { display: none; }
+  #canvas { inset: 0; height: 100%; }
+  .tool-options { top: 6px; left: 6px; right: 6px; transform: none; flex-wrap: wrap; gap: 8px 12px; font-size: 13px; }
+  .tool-options input[type=number] { width: 64px; font-size: 16px; }
+  .tool-options .btn { padding: 8px 12px; }
+  .tool-options .hint { display: none; }
+  .sel-bar { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 2px; background: rgba(38,36,31,.96);
+    border: 1px solid var(--line-2); border-radius: 12px; padding: 4px; box-shadow: 0 8px 26px rgba(0,0,0,.5); }
+  .sel-bar[hidden] { display: none !important; }
+  .sel-bar button { background: none; border: 0; border-radius: 8px; padding: 10px 13px; font-weight: 700; }
+  .sel-bar button:active { background: var(--accent); color: #fff; }
+
+  /* panels: a bottom sheet. Tabs always show; tap one to open, tap again (or ▾) to close */
+  .sidebar { border-left: 0; border-top: 1px solid var(--line); box-shadow: 0 -10px 30px rgba(0,0,0,.35); }
+  .tabs { grid-template-columns: repeat(4, 1fr) 46px; }
+  .tabs button { padding: 12px 2px 11px; font-size: 13px; }
+  .sheet-toggle { display: block; font-size: 16px; color: var(--text) !important; }
+  .sidebar .panel { display: none; }
+  #app.sheet-open .sidebar .panel:not([hidden]) { display: block; height: 40vh; height: 40dvh; flex: none; padding-bottom: 20px; overscroll-behavior: contain; }
+  #app.sheet-open.sheet-tall .sidebar .panel:not([hidden]) { height: 70vh; height: 70dvh; }
+
+  /* bigger touch targets and no iOS zoom-on-focus (inputs need 16px) */
+  input[type=number], input[type=text], select, textarea, .field input, .field select { font-size: 16px; }
+  .btn { padding: 9px 11px; }
+  .btn.small { padding: 7px 9px; font-size: 13px; }
+  .btn.icon { padding: 8px; }
+  .sec > summary { padding: 14px; font-size: 12.5px; }
+  .swatches button { width: 30px; height: 30px; }
+  input[type=color] { width: 42px; height: 38px; }
+  input[type=checkbox] { width: 20px; height: 20px; }
+  input[type=range] { height: 30px; }
+  .slider-row { grid-template-columns: 84px 1fr 44px; }
+  .layer { padding: 10px 10px 10px 12px; }
+  .layer button { padding: 6px 8px; }
+  .segmented button { padding: 9px 0; }
+  .issue .acts .btn { padding: 8px 12px; }
+
+  #toasts { bottom: auto; top: 100px; width: calc(100vw - 24px); }
+  .toast { max-width: none; text-align: center; }
+  .modal { align-items: flex-end; }
+  .modal-card { width: 100vw; max-height: 92vh; max-height: 92dvh; border-radius: 16px 16px 0 0; padding: 16px 14px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+  .modal-card .acts { flex-wrap: wrap; }
+  .modal-card .acts .btn { flex: 1 1 auto; padding: 11px 12px; }
+}

@@ -12,12 +12,13 @@ window.CI = window.CI || {};
     constructor(app) {
       this.app = app; this.canvas = app.canvas; this.tool = 'select';
       this.opts = { sides: 6, points: 5, inner: 0.45, radius: 0, eraseTol: 12, contiguous: true, snap: true, sliceGap: 0.03 };
-      this.drag = null; this.space = false; this.pen = null; this.direct = { path: null, segs: new Set() }; this.hover = null;
+      this.drag = null; this.space = false; this.touches = new Map(); this.pinch = null; this.touchUI = false; this.lastTap = null; this.pen = null; this.direct = { path: null, segs: new Set() }; this.hover = null;
       const c = this.canvas;
       c.addEventListener('pointerdown', e => this.onDown(e));
       window.addEventListener('pointermove', e => this.onMove(e));
       window.addEventListener('pointerup', e => this.onUp(e));
-      c.addEventListener('dblclick', e => this.onDbl(e));
+      window.addEventListener('pointercancel', e => this.onUp(e, true));
+      c.addEventListener('dblclick', e => { if (!this.touchUI) this.onDbl(e); }); // touch double-taps are detected in onUp
       c.addEventListener('wheel', e => this.onWheel(e), { passive: false });
       c.addEventListener('contextmenu', e => e.preventDefault());
       ['selection', 'change', 'view'].forEach(ev => app.on(ev, () => this.draw()));
@@ -35,8 +36,49 @@ window.CI = window.CI || {};
     effectiveTool() { return this.space ? 'hand' : this.tool; }
 
     // ---------- pointer ----------
+    // finger sizes: bigger handles and hit areas while the last input was touch
+    get hr() { return this.touchUI ? 18 : 7; }
+    get rotOff() { return this.touchUI ? 44 : 26; }
+    tapTol(px) { return this.touchUI ? px * 2.2 : px; }
+    setTouchUI(on) { if (on === this.touchUI) return; this.touchUI = on; this.app.hitTol = on ? 12 : 4; this.draw(); }
+
+    // two fingers: pinch to zoom and drag to pan (cancels whatever the first finger started)
+    startPinch() {
+      this.cancelDrag(); this.down = null;
+      const [a, b] = [...this.touches.values()]; const v = this.app.view;
+      const mid = a.add(b).divide(2);
+      this.pinch = { d0: Math.max(10, a.getDistance(b)), z0: v.zoom, anchor: v.viewToProject(mid) };
+    }
+    pinchMove() {
+      const [a, b] = [...this.touches.values()]; const v = this.app.view; const P = this.pinch;
+      const mid = a.add(b).divide(2);
+      const z = Math.min(80, Math.max(0.05, P.z0 * a.getDistance(b) / P.d0));
+      v.zoom = z; v.center = P.anchor.subtract(mid.subtract(new paper.Point(v.viewSize.width / 2, v.viewSize.height / 2)).divide(z));
+      this.app.emit('view');
+    }
+    cancelDrag() {
+      const d = this.drag; this.drag = null; if (!d) return;
+      const app = this.app;
+      if (d.mode === 'move' && d.moved && !d.moved.isZero()) { app.selection.forEach(i => i.translate(d.moved.multiply(-1))); }
+      else if ((d.mode === 'scale' || d.mode === 'rotate' || d.mode === 'seg' || d.mode === 'handle') && d.changed) app.commit({ scale: 'Scale', rotate: 'Rotate' }[d.mode] || 'Edit points');
+      else if (d.mode === 'pen' && d.seg) { d.seg.remove(); if (this.pen && !this.pen.segments.length) { this.pen.remove(); this.pen = null; } }
+      this.canvas.style.cursor = CURSORS[this.effectiveTool()] || 'default';
+      this.draw();
+    }
+
     onDown(e) {
       if (e.button === 2) return;
+      this.setTouchUI(e.pointerType === 'touch' || e.pointerType === 'pen');
+      if (e.pointerType === 'touch') {
+        this.touches.set(e.pointerId, this.vpt(e));
+        if (this.touches.size === 2) { try { this.canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ } this.startPinch(); return; }
+        if (this.touches.size > 2 || this.pinch) return;
+        // tap tools wait for the finger to lift, so the first finger of a pinch never erases or adds text
+        if (this.tool === 'text' || this.tool === 'eraser') {
+          try { this.canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+          this.down = { p: this.ppt(e), v: this.vpt(e), time: Date.now() }; this.drag = { mode: 'tap', p: this.ppt(e) }; return;
+        }
+      }
       if (e.button === 1) { this.drag = { mode: 'pan', v0: this.vpt(e), c0: this.app.view.center.clone() }; e.preventDefault(); return; }
       try { this.canvas.setPointerCapture(e.pointerId); } catch (err) { /* synthetic events */ }
       const p = this.ppt(e); const t = this.effectiveTool(); const app = this.app;
@@ -52,7 +94,11 @@ window.CI = window.CI || {};
       if (t === 'knife') { this.drag = { mode: 'knife', p0: p, p1: p }; return; }
     }
     onMove(e) {
-      if (!this.down && !this.drag) { this.hoverMove(e); return; }
+      if (e.pointerType === 'touch' && this.touches.has(e.pointerId)) {
+        this.touches.set(e.pointerId, this.vpt(e));
+        if (this.pinch) { if (this.touches.size >= 2) this.pinchMove(); return; }
+      }
+      if (!this.down && !this.drag) { if (e.pointerType !== 'touch') this.hoverMove(e); return; }
       if (!this.drag) return;
       const p = this.ppt(e); const d = this.drag; const app = this.app;
       if (d.mode === 'pan') { const dv = this.vpt(e).subtract(d.v0); app.view.center = d.c0.subtract(dv.divide(this.z)); app.emit('view'); return; }
@@ -65,11 +111,33 @@ window.CI = window.CI || {};
       if (d.mode === 'knife') { d.p1 = this.knifeEnd(d.p0, p, e.shiftKey); this.draw(); const k = CI.geom.strip(d.p0, d.p1, Math.max(0.005, this.opts.sliceGap) * UPI); if (k) { k.fillColor = new paper.Color(1, 0.17, 0.5, 0.35); k.strokeColor = '#ff2d8a'; k.strokeWidth = 1; k.strokeScaling = false; this.app.ui.addChild(k); } return; }
       if (d.mode === 'pen') { const seg = d.seg; const v = p.subtract(seg.point); seg.handleOut = v; seg.handleIn = v.multiply(-1); this.draw(); return; }
     }
-    onUp(e) {
-      const d = this.drag; const app = this.app; this.down = null;
+    onUp(e, cancelled) {
+      if (e.pointerType === 'touch' && this.touches.has(e.pointerId)) {
+        this.touches.delete(e.pointerId);
+        if (this.pinch) { if (!this.touches.size) this.pinch = null; try { this.canvas.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ } return; }
+      }
+      if (cancelled) { this.down = null; this.cancelDrag(); return; }
+      const d = this.drag; const app = this.app; const down = this.down; this.down = null;
       try { this.canvas.releasePointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+      // double-tap (touch) = double-click
+      if (e.pointerType === 'touch' && down) {
+        const v = this.vpt(e); const isTap = v.getDistance(down.v) < 12 && Date.now() - down.time < 350;
+        if (isTap) {
+          const lt = this.lastTap; this.lastTap = { v, time: Date.now() };
+          if (lt && Date.now() - lt.time < 380 && v.getDistance(lt.v) < 30) {
+            this.lastTap = null;
+            if (d) { this.drag = null; if (d.mode !== 'tap' && d.mode !== 'pen') this.onUpDrag(d, e); }
+            this.onDbl(e); return;
+          }
+        } else this.lastTap = null;
+      }
       if (!d) return;
       this.drag = null;
+      this.onUpDrag(d, e);
+    }
+    onUpDrag(d, e) {
+      const app = this.app;
+      if (d.mode === 'tap') { const p = d.p; if (this.tool === 'text') { const g = app.addText({ text: 'Your text' }, p); app.emit('edit-text', g); this.setTool('select'); } else if (this.tool === 'eraser') this.eraserDown({ shiftKey: false }, p); return; }
       if (d.mode === 'pan') { this.canvas.style.cursor = CURSORS[this.effectiveTool()]; return; }
       if (d.mode === 'move' || d.mode === 'scale' || d.mode === 'rotate') { if (d.changed) app.commit({ move: 'Move', scale: 'Scale', rotate: 'Rotate' }[d.mode]); this.draw(); return; }
       if (d.mode === 'marquee') { if (d.p1) { const r = new paper.Rectangle(d.p0, d.p1); app.select(app.itemsInRect(r), d.shift); } else if (!d.shift) app.clearSelection(); this.draw(); return; }
@@ -93,7 +161,7 @@ window.CI = window.CI || {};
       if (this.tool === 'pen') { this.finishPen(); return; }
       if (this.tool === 'direct' && this.direct.path) {
         const loc = this.direct.path.getNearestLocation(this.direct.path.globalToLocal(p));
-        if (loc && loc.point.getDistance(this.direct.path.globalToLocal(p)) * this.z < 8) {
+        if (loc && loc.point.getDistance(this.direct.path.globalToLocal(p)) * this.z < this.tapTol(8)) {
           const target = loc.path || this.direct.path; target.divideAt(loc); app.commit('Add point'); this.draw();
         }
         return;
@@ -113,9 +181,12 @@ window.CI = window.CI || {};
     // ---------- select tool ----------
     handleAt(vp) {
       const b = this.app.selectionBounds(); if (!b) return null;
-      const r = 7;
+      let r = this.hr;
+      // tiny objects on a touch screen: a finger inside the box moves it; the big handles only grab from outside
+      if (this.touchUI) { const tl = this.app.view.projectToView(b.topLeft), br = this.app.view.projectToView(b.bottomRight); const vb = new paper.Rectangle(tl, br);
+        if (Math.min(vb.width, vb.height) < r * 4 && vb.contains(vp)) r = 7; }
       const top = this.app.view.projectToView(b.topCenter);
-      if (top.subtract(new paper.Point(0, 26)).getDistance(vp) <= r + 2) return 'rotate';
+      if (top.subtract(new paper.Point(0, this.rotOff)).getDistance(vp) <= r + 2) return 'rotate';
       for (const h of HANDLES) { const hp = this.app.view.projectToView(b[h]); if (Math.abs(hp.x - vp.x) <= r && Math.abs(hp.y - vp.y) <= r) return h; }
       return null;
     }
@@ -210,7 +281,7 @@ window.CI = window.CI || {};
     directDown(e, p) {
       const app = this.app; const dp = this.direct.path;
       if (dp && dp.parent) {
-        const hit = dp.hitTest(p, { segments: true, handles: true, tolerance: 6 / this.z });
+        const hit = dp.hitTest(p, { segments: true, handles: true, tolerance: this.tapTol(6) / this.z });
         if (hit && (hit.type === 'segment' || hit.type === 'handle-in' || hit.type === 'handle-out')) {
           const seg = hit.segment;
           if (hit.type === 'segment') {
@@ -254,6 +325,12 @@ window.CI = window.CI || {};
       this.app.commit('Delete points'); this.draw(); return true;
     }
 
+    toggleSmoothSelected() {
+      if (!this.direct.path || !this.direct.segs.size) return false;
+      this.direct.segs.forEach(seg => { if (seg.handleIn.isZero() && seg.handleOut.isZero()) seg.smooth(); else { seg.handleIn = null; seg.handleOut = null; } });
+      this.app.commit('Toggle smooth'); this.draw(); return true;
+    }
+
     // ---------- pen ----------
     penDown(e, p) {
       const app = this.app;
@@ -262,7 +339,7 @@ window.CI = window.CI || {};
         app.ui.addChild(path); this.pen = path;
       }
       const path = this.pen;
-      if (path.segments.length > 2 && path.firstSegment.point.getDistance(p) * this.z < 9) { path.closed = true; this.finishPen(); return; }
+      if (path.segments.length > 2 && path.firstSegment.point.getDistance(p) * this.z < this.tapTol(9)) { path.closed = true; this.finishPen(); return; }
       const seg = path.add(p); this.drag = { mode: 'pen', seg }; this.draw();
     }
     finishPen() {
@@ -328,9 +405,9 @@ window.CI = window.CI || {};
           CI.geom.subpaths(dp).forEach(sp => sp.segments.forEach(s => {
             const gp = M.transform(s.point); const sel = this.direct.segs.has(s);
             if (sel) {
-              [['handleIn'], ['handleOut']].forEach(([k]) => { if (!s[k].isZero()) { const hp = M.transform(s.point.add(s[k])); L.addChild(new paper.Path.Line({ from: gp, to: hp, strokeColor: '#1a7cff', strokeWidth: 1, strokeScaling: false, insert: false })); L.addChild(new paper.Path.Circle({ center: hp, radius: 3.5 / z, fillColor: '#fff', strokeColor: '#1a7cff', strokeWidth: 1, strokeScaling: false, insert: false })); } });
+              [['handleIn'], ['handleOut']].forEach(([k]) => { if (!s[k].isZero()) { const hp = M.transform(s.point.add(s[k])); L.addChild(new paper.Path.Line({ from: gp, to: hp, strokeColor: '#1a7cff', strokeWidth: 1, strokeScaling: false, insert: false })); L.addChild(new paper.Path.Circle({ center: hp, radius: (this.touchUI ? 6 : 3.5) / z, fillColor: '#fff', strokeColor: '#1a7cff', strokeWidth: 1, strokeScaling: false, insert: false })); } });
             }
-            L.addChild(new paper.Path.Rectangle({ rectangle: new paper.Rectangle(gp.subtract(3.5 / z), new paper.Size(7 / z, 7 / z)), fillColor: sel ? '#1a7cff' : '#fff', strokeColor: '#1a7cff', strokeWidth: 1, strokeScaling: false, insert: false }));
+            L.addChild(new paper.Path.Rectangle({ rectangle: new paper.Rectangle(gp.subtract((this.touchUI ? 6 : 3.5) / z), new paper.Size((this.touchUI ? 12 : 7) / z, (this.touchUI ? 12 : 7) / z)), fillColor: sel ? '#1a7cff' : '#fff', strokeColor: '#1a7cff', strokeWidth: 1, strokeScaling: false, insert: false }));
           }));
         }
         return;
@@ -345,11 +422,11 @@ window.CI = window.CI || {};
       if (sel.length > 1) sel.forEach(i => L.addChild(new paper.Path.Rectangle(Object.assign({ rectangle: i.bounds, opacity: 0.5, insert: false }, style))));
       const b = app.selectionBounds();
       L.addChild(new paper.Path.Rectangle(Object.assign({ rectangle: b, insert: false }, style)));
-      const hs = 7 / z;
+      const hs = (this.touchUI ? 14 : 7) / z;
       HANDLES.forEach(h => L.addChild(new paper.Path.Rectangle({ rectangle: new paper.Rectangle(b[h].subtract(hs / 2), new paper.Size(hs, hs)), fillColor: '#fff', strokeColor: ACCENT, strokeWidth: 1, strokeScaling: false, insert: false })));
-      const rp = b.topCenter.subtract(new paper.Point(0, 26 / z));
+      const rp = b.topCenter.subtract(new paper.Point(0, this.rotOff / z));
       L.addChild(new paper.Path.Line({ from: b.topCenter, to: rp, strokeColor: ACCENT, strokeWidth: 1, strokeScaling: false, insert: false }));
-      L.addChild(new paper.Path.Circle({ center: rp, radius: 4.5 / z, fillColor: ACCENT, strokeColor: '#fff', strokeWidth: 1, strokeScaling: false, insert: false }));
+      L.addChild(new paper.Path.Circle({ center: rp, radius: (this.touchUI ? 9 : 4.5) / z, fillColor: ACCENT, strokeColor: '#fff', strokeWidth: 1, strokeScaling: false, insert: false }));
       // size label
       const lbl = new paper.PointText({ point: b.bottomCenter.add(new paper.Point(0, 16 / z)), content: `${U.round(b.width / UPI, 2)}" × ${U.round(b.height / UPI, 2)}"`, justification: 'center', fillColor: '#0d6b49', fontSize: 11 / z, fontFamily: 'AtkUI, sans-serif', insert: false });
       L.addChild(lbl);

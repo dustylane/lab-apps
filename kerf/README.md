@@ -5,6 +5,8 @@ A small, free, offline "Illustrator for cutting machines". Make text and shapes,
 ## Start
 Double-click **index.html**. It opens in your browser and runs entirely on your computer, with no install and no internet. Chrome or Edge is recommended (they can also use your installed fonts).
 
+**On a phone or tablet:** the tools sit along the bottom and the panels slide up as a sheet. Tap *Design / Layers / Cut check / Export* to open one; tap it again, press ▾, or swipe the tabs down to close it (swipe up for a taller sheet). Pinch to zoom and drag with two fingers to pan. Double-tap text to edit it. With something selected, a bar offers Duplicate, Delete and Edit. The ☰ button holds the menus. The pen tool has a **Done** button, and direct selection has **Smooth ↔ corner** and **Delete point** buttons, so nothing needs a keyboard.
+
 Your work autosaves. If you close the tab, Kerf offers to restore your last session next time.
 
 ## The usual workflows
@@ -58,16 +60,17 @@ Smart guides, align and distribute, groups, layers (hide/lock/reorder), undo/red
 Files: open and save **.kerf** projects (images included). Import PNG/JPG/WebP/SVG (sizes in mm/in/px are honored), and .ttf/.otf/.woff fonts. Export SVG (all colors, or one file per color) or PNG at 300 dpi.
 
 ## Self-test
-Double-click **Self-Test.html** (or `tests/tests.html`). The app opens with a results panel and runs about 152 checks in roughly 90 seconds:
+Double-click **Self-Test.html** (or `tests/tests.html`). The app opens with a results panel and runs about 157 checks in roughly 90 seconds:
 - the cut-check rules,
 - tracing accuracy,
 - background removal,
 - booleans, fonts and export/import,
 - real mouse/keyboard use of every tool and every button,
+- touch: pinch zoom, two-finger pan, double-tap, finger-sized handles and the phone layout,
 - a 400-step random "fuzz" session followed by a full undo.
 
 Everything should be green. To run a subset, add `&grep=word` to the address, e.g. `index.html?selftest=1&grep=trace`.
-Developers with Node can also run `node tests/run-headless.js` (needs `npm i playwright`).
+Developers with Node can also run `node tests/run-headless.js` (needs `npm i playwright`). Add `MOBILE=1` in front to run everything as an iPhone.
 
 ## What's inside (all free & open source)
 | Part | License |

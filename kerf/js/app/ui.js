@@ -93,12 +93,12 @@ window.CI = window.CI || {};
       this.dist = Object.assign({ preset: 'worn', seed: 11, smooth: 0.9, keep: true, band: 0.12 }, CI.distress.PRESETS.worn);
       this.actions = this.makeActions();
       this.buildMenus(); this.buildToolbar(); this.bindTop(); this.bindTabs(); this.bindPanels(); this.bindKeys(); this.bindDrop();
-      app.on('selection', () => this.onSelection());
+      app.on('selection', () => { this.onSelection(); this.renderSelBar(); });
       app.on('change', () => { this.renderLayers(); this.syncUndo(); if (this.tab === 'export') this.renderExport(); this.onSelection(); });
       app.on('transforming', () => this.updateSelFields());
       app.on('issues', () => { this.renderCheck(); this.renderStatus(); if (this.tab === 'export') this.renderExport(); });
       app.on('doc', () => { this.syncTop(); this.renderCheck(); if (this.tab === 'export') this.renderExport(); });
-      app.on('tool', t => { $$('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === t)); this.renderToolOptions(); });
+      app.on('tool', t => { $$('.tool').forEach(b => b.classList.toggle('active', b.dataset.tool === t)); this.renderToolOptions(); this.renderSelBar(); const b = $(`.tool[data-tool="${t}"]`); if (b && b.scrollIntoView && this.isPhone()) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
       app.on('view', () => { $('#zoom-label').textContent = Math.round(app.view.zoom * 100) + '%'; });
       app.on('cursor', p => { $('#st-cursor').textContent = `x ${U.round(p.x / UPI, 2).toFixed(2)}"  y ${U.round(p.y / UPI, 2).toFixed(2)}"`; });
       app.on('toast', t => this.toast(t.msg, t.kind));
@@ -145,6 +145,12 @@ window.CI = window.CI || {};
         snap: () => { t.opts.snap = !t.opts.snap; this.toast('Smart guides ' + (t.opts.snap ? 'on' : 'off')); },
         shortcuts: () => this.modalShortcuts(), dsGuide: () => this.modalDS(), about: () => this.modalAbout(),
         showCheck: () => { this.showTab('check'); a.runCutCheck(); }, showExport: () => this.showTab('export'),
+        toggleMenus: () => $('#app').classList.toggle('menus-open'),
+        toggleSheet: () => this.setSheet(!this.sheetOpen),
+        openSheet: () => this.showTab('design'),
+        penDone: () => t.finishPen(),
+        pointDelete: () => { if (!t.deleteSegments()) this.toast('Tap a point first.', 'warn'); },
+        pointSmooth: () => { if (!t.toggleSmoothSelected()) this.toast('Tap a point first.', 'warn'); },
         checkNow: () => a.runCutCheck(),
         loadFont: () => $('#file-font').click(),
         systemFonts: async () => { try { const n = await CI.fonts.loadSystemFonts(); this.toast(n + ' installed font families available.', 'ok'); this.renderDesign(true); } catch (e) { this.toast(e.message, 'warn'); } },
@@ -205,11 +211,11 @@ window.CI = window.CI || {};
       nav.innerHTML = MENUS.map(([name, items], i) => `<div class="menu" data-menu="${i}"><button>${name}</button><div class="dropdown">${items.map(it => it === '-' ? '<hr>' : `<button data-action="${it[0]}">${it[1]}${it[2] ? `<kbd>${it[2]}</kbd>` : ''}</button>`).join('')}</div></div>`).join('');
       nav.addEventListener('click', e => {
         const m = e.target.closest('.menu'); const act = e.target.closest('[data-action]');
-        if (act) { $$('.menu').forEach(x => x.classList.remove('open')); return; }
+        if (act) { $$('.menu').forEach(x => x.classList.remove('open')); $('#app').classList.remove('menus-open'); return; }
         if (m && e.target.closest('.menu > button')) { const was = m.classList.contains('open'); $$('.menu').forEach(x => x.classList.remove('open')); if (!was) m.classList.add('open'); }
       });
       nav.addEventListener('mouseover', e => { const m = e.target.closest('.menu'); if (m && $$('.menu.open').length && !m.classList.contains('open')) { $$('.menu').forEach(x => x.classList.remove('open')); m.classList.add('open'); } });
-      document.addEventListener('pointerdown', e => { if (!e.target.closest('.menus')) $$('.menu').forEach(x => x.classList.remove('open')); });
+      document.addEventListener('pointerdown', e => { if (!e.target.closest('.menus') && !e.target.closest('#menu-btn')) { $$('.menu').forEach(x => x.classList.remove('open')); $('#app').classList.remove('menus-open'); } });
       $('#btn-undo').innerHTML = I.undo; $('#btn-redo').innerHTML = I.redo;
     }
     buildToolbar() {
@@ -226,10 +232,10 @@ window.CI = window.CI || {};
       if (t === 'polygon') h = num('sides', 'Sides', 1, 3, 40);
       else if (t === 'star') h = num('points', 'Points', 1, 3, 40) + num('inner', 'Inner ratio', 0.05, 0.1, 0.95);
       else if (t === 'rect') h = num('radius', 'Corner radius (in)', 0.05, 0, 5);
-      else if (t === 'eraser') h = `<label>Tolerance<input type="range" data-topt="eraseTol" min="0" max="60" value="${o.eraseTol}" style="width:110px"><output>${o.eraseTol}</output></label><label><input type="checkbox" data-topt="contiguous" ${o.contiguous ? 'checked' : ''}> Contiguous</label><span style="color:var(--faint)">Shift-click = that color everywhere</span>`;
+      else if (t === 'eraser') h = `<label>Tolerance<input type="range" data-topt="eraseTol" min="0" max="60" value="${o.eraseTol}" style="width:110px"><output>${o.eraseTol}</output></label><label><input type="checkbox" data-topt="contiguous" ${o.contiguous ? 'checked' : ''}> Contiguous</label><span style="color:var(--faint)"><span class="hint">Shift-click = that color everywhere</span></span>`;
       else if (t === 'knife') h = `<label>Gap (in)<input type="number" data-topt="sliceGap" value="${o.sliceGap}" step="0.01" min="0.005" max="0.5"></label><span style="color:var(--muted)">Drag a line across shapes to cut them apart · Shift = 45°</span>`;
-      else if (t === 'pen') h = '<span style="color:var(--muted)">Click = corner · drag = curve · click first point to close · Enter to finish</span>';
-      else if (t === 'direct') h = '<span style="color:var(--muted)">Drag points/handles · Alt-click point = smooth/corner · double-click path = add point · Del = remove point</span>';
+      else if (t === 'pen') h = '<span style="color:var(--muted)">Click = corner · drag = curve · click first point to close</span><button class="btn small go" data-action="penDone">Done</button>';
+      else if (t === 'direct') h = '<span style="color:var(--muted)">Drag points/handles · double-click/tap path = add point</span><button class="btn small" data-action="pointSmooth">Smooth ↔ corner</button><button class="btn small" data-action="pointDelete">Delete point</button>';
       el.innerHTML = h;
       el.oninput = (e) => { const k = e.target.dataset.topt; if (!k) return; o[k] = e.target.type === 'checkbox' ? e.target.checked : parseFloat(e.target.value); const out = e.target.parentElement.querySelector('output'); if (out) out.textContent = e.target.value; };
     }
@@ -257,9 +263,28 @@ window.CI = window.CI || {};
     }
 
     // ---------- tabs ----------
-    bindTabs() { $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) this.showTab(b.dataset.tab); }); }
+    bindTabs() {
+      $('#tabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; if (this.isPhone() && this.sheetOpen && this.tab === b.dataset.tab) this.setSheet(false); else this.showTab(b.dataset.tab); });
+      // phones: dragging the tab strip up makes the sheet taller, down closes it
+      let y0 = null; const tabs = $('#tabs');
+      tabs.addEventListener('pointerdown', e => { if (this.isPhone()) y0 = e.clientY; });
+      tabs.addEventListener('pointerup', e => { if (y0 == null) return; const dy = e.clientY - y0; y0 = null;
+        if (dy < -30) { if (!this.sheetOpen) this.showTab(this.tab); else $('#app').classList.add('sheet-tall'); }
+        else if (dy > 30) { if ($('#app').classList.contains('sheet-tall')) $('#app').classList.remove('sheet-tall'); else this.setSheet(false); } });
+    }
+    isPhone() { return window.matchMedia('(max-width: 760px)').matches; }
+    setSheet(open) {
+      this.sheetOpen = !!open; const appEl = $('#app');
+      appEl.classList.toggle('sheet-open', this.sheetOpen); if (!open) appEl.classList.remove('sheet-tall');
+      const tg = $('.sheet-toggle'); if (tg) tg.textContent = this.sheetOpen ? '▾' : '▴';
+      this.renderSelBar();
+    }
+    renderSelBar() {
+      const bar = $('#sel-bar'); if (!bar) return;
+      bar.hidden = !(this.app.selection.length && !this.sheetOpen && this.tools.tool === 'select');
+    }
     showTab(t) {
-      this.tab = t;
+      this.tab = t; this.setSheet(true);
       $$('#tabs [data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab === t));
       $$('.panel').forEach(p => p.hidden = p.dataset.panel !== t);
       if (t === 'export') this.renderExport();

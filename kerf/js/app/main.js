@@ -10,7 +10,12 @@
   window.app = app; window.tools = tools; window.ui = ui;
 
   const stage = document.getElementById('stage');
-  const fit = () => { const r = canvas.getBoundingClientRect(); if (r.width && r.height) { app.view.viewSize = new paper.Size(r.width, r.height); app.emit('view'); } };
+  // measure the stage, not the canvas: on high-DPI screens Paper.js pins the canvas's CSS size, so it would never shrink
+  const bar = document.querySelector('.statusbar');
+  const fit = () => {
+    const w = stage.clientWidth, h = stage.clientHeight - (bar && bar.offsetParent ? bar.offsetHeight : 0);
+    if (w > 0 && h > 0) { const c = app.view.center.clone(); app.view.viewSize = new paper.Size(w, h); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; app.view.center = c; app.emit('view'); }
+  };
   new ResizeObserver(() => fit()).observe(stage);
   fit(); app.zoomFitMat();
   app.runCutCheck();

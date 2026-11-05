@@ -123,7 +123,7 @@ window.CI = window.CI || {};
     selectionBounds() { const s = this.selection.filter(i => i.parent); return s.length ? s.map(i => i.bounds).reduce((a, b) => a.unite(b)) : null; }
     refreshSelection() { this.selection = this.selection.filter(i => i.parent === this.design); this.emit('selection', this.selection); }
     hitTest(pt, opts = {}) {
-      const tol = (opts.tolerance || 4) / this.view.zoom;
+      const tol = (opts.tolerance || this.hitTol || 4) / this.view.zoom;
       const res = this.project.hitTest(pt, { fill: true, stroke: true, tolerance: tol, match: h => h.item.layer === this.design && this.topLevel(h.item) && !this.topLevel(h.item).locked });
       if (res) return res;
       // fall back to items whose interior contains the point (e.g. unfilled text counters)
