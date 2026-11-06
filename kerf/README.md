@@ -5,7 +5,7 @@ A small, free, offline "Illustrator for cutting machines". Make text and shapes,
 ## Start
 Double-click **index.html**. It opens in your browser and runs entirely on your computer, with no install and no internet. Chrome or Edge is recommended (they can also use your installed fonts).
 
-**On a phone or tablet:** the tools sit along the bottom and the panels slide up as a sheet. Tap *Design / Layers / Cut check / Export* to open one; tap it again, press ▾, or swipe the tabs down to close it (swipe up for a taller sheet). Pinch to zoom and drag with two fingers to pan. Double-tap text to edit it. With something selected, a bar offers Duplicate, Delete and Edit. The ☰ button holds the menus. The pen tool has a **Done** button, and direct selection has **Smooth ↔ corner** and **Delete point** buttons, so nothing needs a keyboard.
+**On a phone or tablet:** the tools sit along the bottom and the panels slide up as a sheet. Held sideways, the tools move to the left and panels slide in from the right. On a computer, the **▸** button folds the side panel into a thin strip (click a tab to bring it back). Tap *Design / Layers / Cut check / Export* to open one; tap it again, press ▾, or swipe the tabs down to close it (swipe up for a taller sheet). Pinch to zoom and drag with two fingers to pan. Double-tap text to edit it. With something selected, a bar offers Duplicate, Delete and Edit. The ☰ button holds the menus. The pen tool has a **Done** button, and direct selection has **Smooth ↔ corner** and **Delete point** buttons, so nothing needs a keyboard. The ☰ menu shows the version number, so you can check that your phone has the latest copy.
 
 Your work autosaves. If you close the tab, Kerf offers to restore your last session next time.
 
@@ -70,7 +70,7 @@ Double-click **Self-Test.html** (or `tests/tests.html`). The app opens with a re
 - a 400-step random "fuzz" session followed by a full undo.
 
 Everything should be green. To run a subset, add `&grep=word` to the address, e.g. `index.html?selftest=1&grep=trace`.
-Developers with Node can also run `node tests/run-headless.js` (needs `npm i playwright`). Add `MOBILE=1` in front to run everything as an iPhone.
+Developers with Node can also run `node tests/run-headless.js` (needs `npm i playwright`). Add `MOBILE=1` (iPhone), `MOBILE=landscape` or `MOBILE=ipad` in front to run everything on a touch device.
 
 ## What's inside (all free & open source)
 | Part | License |

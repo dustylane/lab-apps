@@ -94,7 +94,7 @@
       noErrors();
     });
     it('smart guides snap to the mat edge', async () => {
-      await fresh(); rect(1, 1, 1, 1); key('v'); await click(pt(1.5, 1.5));
+      await fresh(); if (A.view.zoom < 0.35) { A.view.zoom = 0.35; A.view.center = pt(3, 2); } /* tiny (phone-sideways) views snap from farther away */ rect(1, 1, 1, 1); key('v'); await click(pt(1.5, 1.5));
       await drag(pt(1.5, 1.5), pt(0.53, 1.5));
       expect(A.selection[0].bounds.x).toBeCloseTo(0, 0.01); noErrors();
     });
@@ -107,7 +107,7 @@
       expect(A.selectionBounds().height).toBeGreaterThan(inch(3)); noErrors();
     });
     it('marquee selects several; alt-drag duplicates', async () => {
-      await fresh(); rect(1, 1, 1, 1); rect(3, 1, 1, 1); rect(8, 8, 1, 1); key('v');
+      await fresh(); if (A.view.zoom < 0.35) { A.view.zoom = 0.35; A.view.center = pt(3, 2); } /* tiny (phone-sideways) views snap from farther away */ rect(1, 1, 1, 1); rect(3, 1, 1, 1); rect(8, 8, 1, 1); key('v');
       await drag(pt(0.5, 0.5), pt(4.5, 2.5)); expect(A.selection.length).toBe(2);
       await drag(pt(1.5, 1.5), pt(1.5, 5), { altKey: true, ctrlKey: true }); expect(A.designItems().length).toBe(5); noErrors();
     });

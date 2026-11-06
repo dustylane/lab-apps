@@ -176,9 +176,20 @@ ol.steps b { color: var(--text); }
 button, select, input, label { touch-action: manipulation; }
 @media (hover: none) { .layer .ops { opacity: 1; } }
 
-@media (max-width: 760px) {
+/* desktop & large tablets: the side panel collapses to a thin rail (▸ / ◂) */
+.sheet-toggle { display: block; color: var(--text) !important; font-size: 14px; }
+.tabs { grid-template-columns: repeat(4, 1fr) 30px; }
+#app:not(.sheet-open) { grid-template-columns: 52px 1fr 40px; }
+#app:not(.sheet-open) .sidebar .panel { display: none; }
+#app:not(.sheet-open) .tabs { grid-template-columns: 1fr; grid-auto-rows: auto; align-content: start; border-bottom: 0; height: 100%; }
+#app:not(.sheet-open) .tabs button { writing-mode: vertical-rl; padding: 12px 0; border-bottom: 0; border-left: 2px solid transparent; }
+#app:not(.sheet-open) .tabs .sheet-toggle { writing-mode: horizontal-tb; order: -1; padding: 10px 0; }
+.menu-ver { display: none; }
+
+@media (max-width: 760px), (pointer: coarse) and (max-width: 1100px), (pointer: coarse) and (max-height: 520px) {
   html, body { font-size: 14px; }
-  #app { height: 100vh; height: 100dvh; grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto auto;
+  html, body { touch-action: pan-x pan-y; overscroll-behavior: none; }
+  #app, #app:not(.sheet-open) { height: 100vh; height: 100dvh; grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto auto;
     grid-template-areas: "top" "stage" "side" "tools"; }
 
   /* top bar: two rows (menu, undo, status, export) / (material, mat, zoom) */
@@ -233,7 +244,11 @@ button, select, input, label { touch-action: manipulation; }
 
   /* panels: a bottom sheet. Tabs always show; tap one to open, tap again (or ▾) to close */
   .sidebar { border-left: 0; border-top: 1px solid var(--line); box-shadow: 0 -10px 30px rgba(0,0,0,.35); }
-  .tabs { grid-template-columns: repeat(4, 1fr) 46px; }
+  .tabs, #app:not(.sheet-open) .tabs { grid-template-columns: repeat(4, 1fr) 46px; grid-auto-rows: auto; height: auto; border-bottom: 1px solid var(--line); }
+  #app:not(.sheet-open) .tabs button { writing-mode: horizontal-tb; padding: 12px 2px 11px; border-left: 0; border-bottom: 2px solid transparent; }
+  #app:not(.sheet-open) .tabs button.active { border-bottom-color: var(--accent); }
+  #app:not(.sheet-open) .tabs .sheet-toggle { order: 0; }
+  .menu-ver { display: block; color: var(--faint); font-size: 12px; padding: 10px 12px 4px; }
   .tabs button { padding: 12px 2px 11px; font-size: 13px; }
   .sheet-toggle { display: block; font-size: 16px; color: var(--text) !important; }
   .sidebar .panel { display: none; }
@@ -262,4 +277,26 @@ button, select, input, label { touch-action: manipulation; }
   .modal-card { width: 100vw; max-height: 92vh; max-height: 92dvh; border-radius: 16px 16px 0 0; padding: 16px 14px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }
   .modal-card .acts { flex-wrap: wrap; }
   .modal-card .acts .btn { flex: 1 1 auto; padding: 11px 12px; }
+}
+
+/* phones held sideways: tools on the left, one-row top bar, panels slide in from the right over the canvas */
+@media (orientation: landscape) and (pointer: coarse) and (max-width: 1100px), (orientation: landscape) and (max-height: 520px) and (pointer: coarse), (orientation: landscape) and (max-height: 520px) and (max-width: 760px) {
+  #app, #app:not(.sheet-open) { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "top top" "tools stage" "tools side"; }
+  .topbar { flex-wrap: nowrap; gap: 4px; padding: 4px 8px; padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+  .tb-break, .tb-group.zoom #zoom-label { display: none; }
+  .tb-select, .tb-group.zoom { order: 0; }
+  .icon-btn { width: 36px; height: 36px; }
+  .tb-select select { padding: 6px; }
+  .status-pill { max-width: 20vw; padding: 7px 9px; }
+  .primary { padding: 8px 10px; }
+  .toolbar { flex-direction: column; overflow-x: hidden; overflow-y: auto; border-top: 0; border-right: 1px solid var(--line); padding: 4px; padding-left: max(4px, env(safe-area-inset-left)); }
+  .tool { width: 42px; height: 40px; }
+  .tool-sep { width: 26px; height: 0; border-left: 0; border-top: 1px solid var(--line); margin: 3px 0; }
+  .swatch-tool { margin: 4px 0 0; }
+  .tabs button { padding: 9px 2px 8px; }
+  #app.sheet-open .sidebar .panel:not([hidden]), #app.sheet-open.sheet-tall .sidebar .panel:not([hidden]) { position: fixed; z-index: 40; right: 0; top: 45px; bottom: 41px; height: auto; width: min(400px, 56vw);
+    background: var(--panel); border-left: 1px solid var(--line-2); box-shadow: -14px 0 40px rgba(0,0,0,.5); padding-right: env(safe-area-inset-right); }
+  .menus { top: 46px; max-height: 84vh; }
+  #toasts { top: 56px; }
+  .menu-ver { display: block; }
 }

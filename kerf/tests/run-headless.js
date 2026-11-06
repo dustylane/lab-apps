@@ -5,7 +5,8 @@ const path = require('path');
   let pw; try { pw = require('playwright'); } catch (e) { console.error('Playwright not installed. Open tests/tests.html in Chrome/Edge instead, or run: npm i playwright'); process.exit(2); }
   const browser = await pw.chromium.launch();
   // MOBILE=1 runs the whole suite as an iPhone (touch, small screen, 3x pixels)
-  const page = process.env.MOBILE ? await (await browser.newContext({ ...pw.devices['iPhone 13'] })).newPage() : await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  const dev = process.env.MOBILE === 'landscape' ? 'iPhone 13 landscape' : process.env.MOBILE === 'ipad' ? 'iPad Mini' : 'iPhone 13';
+  const page = process.env.MOBILE ? await (await browser.newContext({ ...pw.devices[dev] })).newPage() : await browser.newPage({ viewport: { width: 1400, height: 900 } });
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); if (process.env.VERBOSE && m.text().startsWith('[test]')) console.log(m.text()); });

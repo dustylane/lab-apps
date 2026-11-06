@@ -3,6 +3,8 @@ window.CI = window.CI || {};
 (function (CI) {
   'use strict';
   const U = CI.util; const UPI = U.UPI;
+  CI.VERSION = '2026.11.05-2';
+  CI.COMPACT_QUERY = '(max-width: 760px), (pointer: coarse) and (max-width: 1100px), (pointer: coarse) and (max-height: 520px)';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = U.escapeXml;
@@ -79,7 +81,7 @@ window.CI = window.CI || {};
 
   class UI {
     constructor(app, tools) {
-      this.app = app; this.tools = tools; this.tab = 'design';
+      this.app = app; this.tools = tools; this.tab = 'design'; this.sheetOpen = !this.isPhone();
       this.open = { sel: true, text: true, image: true, path: true, align: true };
       this.img = { bgTol: 14, threshold: 128, despeckle: 24, fillHoles: 24, smooth: 1, choke: 0, mode: 'colors', colors: 6, levels: 4, tthreshold: 128, fidelity: 60, corners: 50, tdespeckle: 16, ignoreWhite: null, stack: false, view: 'result', tpreset: null, preview: true, keepImage: true };
       this.offset = { dist: 0.125, fillHoles: true, keep: true };
@@ -106,6 +108,8 @@ window.CI = window.CI || {};
       app.on('open-panel', p => { this.showTab('design'); this.open.image = true; this.renderDesign(true); });
       app.on('fonts', () => this.renderDesign(true));
       app.on('raster', () => this.renderDesign(true));
+      this.setSheet(this.sheetOpen);
+      try { window.matchMedia(CI.COMPACT_QUERY).addEventListener('change', () => this.setSheet(this.isPhone() ? false : true)); } catch (e) { /* old browsers */ }
       this.syncTop(); this.renderDesign(true); this.renderLayers(); this.renderCheck(); this.syncUndo(); this.renderToolOptions();
     }
 
@@ -208,7 +212,7 @@ window.CI = window.CI || {};
     // ---------- top bar ----------
     buildMenus() {
       const nav = $('#menus');
-      nav.innerHTML = MENUS.map(([name, items], i) => `<div class="menu" data-menu="${i}"><button>${name}</button><div class="dropdown">${items.map(it => it === '-' ? '<hr>' : `<button data-action="${it[0]}">${it[1]}${it[2] ? `<kbd>${it[2]}</kbd>` : ''}</button>`).join('')}</div></div>`).join('');
+      nav.innerHTML = `<div class="menu-ver">Kerf version ${CI.VERSION}</div>` + MENUS.map(([name, items], i) => `<div class="menu" data-menu="${i}"><button>${name}</button><div class="dropdown">${items.map(it => it === '-' ? '<hr>' : `<button data-action="${it[0]}">${it[1]}${it[2] ? `<kbd>${it[2]}</kbd>` : ''}</button>`).join('')}</div></div>`).join('');
       nav.addEventListener('click', e => {
         const m = e.target.closest('.menu'); const act = e.target.closest('[data-action]');
         if (act) { $$('.menu').forEach(x => x.classList.remove('open')); $('#app').classList.remove('menus-open'); return; }
@@ -272,11 +276,17 @@ window.CI = window.CI || {};
         if (dy < -30) { if (!this.sheetOpen) this.showTab(this.tab); else $('#app').classList.add('sheet-tall'); }
         else if (dy > 30) { if ($('#app').classList.contains('sheet-tall')) $('#app').classList.remove('sheet-tall'); else this.setSheet(false); } });
     }
-    isPhone() { return window.matchMedia('(max-width: 760px)').matches; }
+    isPhone() { return window.matchMedia(CI.COMPACT_QUERY).matches; }
     setSheet(open) {
-      this.sheetOpen = !!open; const appEl = $('#app');
+      const was = !!this.sheetOpen; this.sheetOpen = !!open; const appEl = $('#app');
+      // sideways phones/tablets: the panel slides over the right of the canvas, so shift the view to keep the design visible
+      if (was !== this.sheetOpen && this.app.view && window.matchMedia('(orientation: landscape)').matches && this.isPhone()) {
+        const w = Math.min(400, window.innerWidth * 0.56) / 2 / this.app.view.zoom;
+        this.app.view.center = this.app.view.center.add(new paper.Point(this.sheetOpen ? w : -w, 0)); this.app.emit('view');
+      }
       appEl.classList.toggle('sheet-open', this.sheetOpen); if (!open) appEl.classList.remove('sheet-tall');
-      const tg = $('.sheet-toggle'); if (tg) tg.textContent = this.sheetOpen ? '▾' : '▴';
+      const tg = $('.sheet-toggle'); if (tg) tg.textContent = this.isPhone() ? (this.sheetOpen ? '▾' : '▴') : (this.sheetOpen ? '▸' : '◂');
+      if (this.app.view) setTimeout(() => window.dispatchEvent(new Event('resize')), 0);
       this.renderSelBar();
     }
     renderSelBar() {
@@ -927,7 +937,7 @@ window.CI = window.CI || {};
       this.modal(`<h2>Sending to Design Space (free)</h2><ol class="steps"><li>Fix anything in <b>Cut check</b> until it says <b>Ready to cut</b>.</li><li><b>Export → Download SVG for Design Space</b>. Each color becomes one welded layer, sized in real inches.</li><li>In Design Space: <b>New project → Upload → Upload image → Browse</b>, pick the SVG, then <b>Upload</b>.</li><li>Select it, <b>Add to canvas</b>. Check the size matches what Kerf showed.</li><li><b>Make it</b>. For iron-on: either export mirrored here or toggle mirror there — not both.</li></ol><p class="help">Uploading your own files is free; Cricut Access is only needed for their image/font library.</p>`);
     }
     modalAbout() {
-      this.modal(`<h2>Kerf — cut design studio</h2><p class="help">Runs entirely on your computer; nothing is uploaded anywhere. Built only from free, open-source parts:</p><table>
+      this.modal(`<h2>Kerf — cut design studio</h2><p class="help">Version <b>${CI.VERSION}</b></p><p class="help">Runs entirely on your computer; nothing is uploaded anywhere. Built only from free, open-source parts:</p><table>
         <tr><td>Paper.js — vector graphics & boolean ops</td><td>MIT</td></tr><tr><td>opentype.js — fonts to paths</td><td>MIT</td></tr><tr><td>paperjs-offset — stroke outlining</td><td>MIT</td></tr>
         <tr><td>Bundled fonts (Bungee, Alfa Slab One, DM Serif Display, Fredoka, Big Shoulders Stencil, Damion, Kaushan Script, Yellowtail, Leckerli One, Atkinson Hyperlegible) via Fontsource</td><td>SIL OFL 1.1</td></tr>
         <tr><td>Tracer, background removal, edge cleanup, cut checker</td><td>Kerf (this project)</td></tr></table><p class="help">License texts are in the <b>vendor/licenses</b> and <b>fonts</b> folders.</p>`);

@@ -9,6 +9,8 @@
   const ui = new CI.UI(app, tools);
   window.app = app; window.tools = tools; window.ui = ui;
 
+  // iPhone Safari ignores maximum-scale: stop page pinch-zoom so pinches reach the canvas
+  ['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
   const stage = document.getElementById('stage');
   // measure the stage, not the canvas: on high-DPI screens Paper.js pins the canvas's CSS size, so it would never shrink
   const bar = document.querySelector('.statusbar');
