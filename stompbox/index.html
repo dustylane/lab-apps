@@ -1051,6 +1051,71 @@ body.perform .app{grid-template-rows:1fr}
 .rmx-explain li{line-height:1.45;color:var(--ink-dim)}
 .rmx-explain li b{color:var(--ink)}
 .modal:has(.rmx-explain){max-width:620px}
+
+/* ================= v58: phones and touch screens ================= */
+/* every pop-up fits the screen you can actually see (dvh: what's left between the browser's own bars), scrolls inside,
+   and keeps its buttons on screen at the bottom */
+.modal-bg{overflow-y:auto;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom))}
+.modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow:auto;overscroll-behavior:contain}
+.modal.wide{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+.modal.tabm{max-height:calc(100dvh - 24px)}
+.modal > .tour-btns{position:sticky;bottom:-18px;background:var(--panel-2);z-index:2;padding-bottom:14px;margin-bottom:-14px}
+.sheet{max-height:calc(88dvh - env(safe-area-inset-bottom));padding-bottom:max(24px,env(safe-area-inset-bottom))}
+.an-secs{max-height:38dvh}.midi-parts{max-height:46dvh}.explain{max-height:68dvh}.ly-opts{max-height:50dvh}
+.practice{max-height:52dvh;padding-bottom:max(14px,env(safe-area-inset-bottom))}
+/* no hover on a touch screen: the tools that only showed on hover are always there */
+@media (hover:none){
+  .sblock .sb-top .mini:not(.sb-play):not(.sb-loop){opacity:1}
+  .node header .rm,.node header .dup,.node header .swap{opacity:.75}
+}
+/* touch: swiping up and down over a grid, a lane or the timeline scrolls the page (sideways still paints / drags) */
+@media (pointer:coarse){
+  .pgrid,.cell,.lane-svg,.tl-strip{touch-action:pan-y}
+  .btn,.mini,.chipbtn,.seg button,select.field{min-height:36px}
+  .mini{min-width:32px}
+  .knob{width:46px;height:46px}
+}
+@media (max-width:700px){
+  /* one scroll for the whole page: the room you're in grows to its content instead of scrolling inside a box */
+  /* the page itself scrolls (not a box inside it), so the browser's address bar can tuck away and swipes have momentum */
+  html,body{height:auto;min-height:100%}
+  html{overflow-y:auto}
+  body{overflow:visible;overflow-x:hidden}
+  .app{height:auto}
+  .stage{height:auto;min-height:0}
+  .song,.live,.mixv,.lyricsv{overflow:visible;flex:none}
+  body[data-view="board"]:not(.board-stack) .stage{height:calc(100dvh - 130px);min-height:420px}
+  /* the stacked board: the page scrolls, the board tools sit in a bar along the bottom of the screen */
+  .board-stack .vp{overflow:visible;touch-action:pan-y;flex:none;cursor:default}
+  .board-stack .node,.board-stack .node header,.board-stack .node .scr{touch-action:pan-y}
+  .board-stack .world.stack{min-height:0;padding-bottom:24px}
+  .board-stack .board-tools{position:fixed;left:0;right:0;bottom:0;z-index:15;margin:0;padding:8px 10px max(8px,env(safe-area-inset-bottom));background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(8px);border-top:1px solid var(--line);flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+  .board-stack .board-tools::-webkit-scrollbar{display:none}
+  .board-stack .board-tools .btn{flex:none}
+  body.board-stack[data-view="board"] .app{padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  body.board-stack[data-view="board"] .toast{bottom:calc(70px + env(safe-area-inset-bottom))}
+  .toast{left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom));max-width:none}
+  .board-stack .node{width:min(100%,380px)}
+  .board-stack .node.pattern{width:100%}
+  /* song, mix, live: comfortable gutters, nothing wider than the phone */
+  .song,.live,.mixv,.lyricsv{padding:12px}
+  .sblock{width:100% !important}
+  .stl{gap:8px}
+  .auto-tools{flex-wrap:wrap}
+  .tl-hint{display:none}
+  .keys-panel{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  .coach{max-width:calc(100vw - 24px)}
+  /* the top row fits on one line: play, what plays, undo, tempo & key, ⋯ */
+  .topline{gap:6px;padding:8px 10px}
+  .topline .brand{display:none}
+  .topline .play{width:46px;height:46px;flex:none}
+  .topline .modechip{padding:4px 8px;font-size:11px}
+  .topline .undo .btn{width:36px;min-width:36px;padding:0}
+  #sbToggle{padding:6px 10px;font-size:13px;white-space:nowrap}
+  #moreBtn{flex:none;width:40px;justify-content:center;padding:0}
+}
+.sbt-short{display:none}
+@media (max-width:400px){.sbt-long{display:none}.sbt-short{display:inline}.topline .undo .btn{width:32px;min-width:32px}.topline{gap:5px}}
 </style>
 <div class="app" id="app">
   <div class="top" id="top">
@@ -1073,7 +1138,7 @@ body.perform .app{grid-template-rows:1fr}
       </div>
       <div class="spacer"></div>
       <div class="songchip" id="songChip"></div>
-      <button class="btn" id="sbToggle" aria-expanded="false" aria-controls="songbar">Tempo &amp; key ▾</button>
+      <button class="btn" id="sbToggle" aria-expanded="false" aria-controls="songbar" aria-label="Tempo and key"><span class="sbt-long">Tempo &amp; key</span><span class="sbt-short">Key</span>&nbsp;▾</button>
       <button class="btn icon" id="moreBtn" aria-expanded="false" aria-label="More: save, new song, file, practice, help" title="More">⋯</button>
  <button class="btn" id="practiceBtn" title="Learn to play a part: it scrolls by as tab, a drum grid or notes, slows down, loops, and listens to you"><span class="ico" data-ico="guitar"></span><span class="lbl-long">Practice</span></button>
  <button class="btn" id="visBtn" title="A full-screen picture that dances to your music. Record it as a video."><span class="ico" data-ico="eye"></span><span class="lbl-long">Visuals</span></button>
@@ -3138,7 +3203,7 @@ function initTop() {
   $('#makeItBtn').onclick = e => { e.stopPropagation(); openMakeIt($('#makeItBtn')); };
   $('#explainBtn').onclick = openExplain;
   $('#restyleBtn').onclick = e => { e.stopPropagation(); openRestyle($('#restyleBtn')); };
-  $('#sbToggle').onclick = () => { const on = document.body.classList.toggle('sb-open'); $('#sbToggle').setAttribute('aria-expanded', String(on)); $('#sbToggle').textContent = on ? 'Tempo & key ▴' : 'Tempo & key ▾'; };
+  $('#sbToggle').onclick = () => { const on = document.body.classList.toggle('sb-open'); $('#sbToggle').setAttribute('aria-expanded', String(on)); $('#sbToggle').innerHTML = `<span class="sbt-long">Tempo &amp; key</span><span class="sbt-short">Key</span>&nbsp;${on ? '▴' : '▾'}`; };
   document.body.classList.toggle('simple', !proMode); renderProSwitch();
   $('#saveProj').onclick = saveProject; $('#openProj').onclick = () => guardUnsaved('Opening a project file', () => $('#openFile').click());
   $('#openFile').onchange = openProject;
@@ -3957,6 +4022,7 @@ function initBoard() {
     const hd = e.target.closest('.node header'); if (hd && !e.target.closest('button') && !stackMode()) return startNodeDrag(e, hd.parentElement);
     if (e.target.closest('.node') || e.target.closest('.wire-hit')) return;
     if (pinch) return;
+    if (stackMode()) return; // the stacked board scrolls with the page (the browser does it, with momentum)
     startPan(e);
   });
   window.addEventListener('resize', () => requestAnimationFrame(drawWires));
