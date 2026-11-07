@@ -1,0 +1,3 @@
+Samples from tonejs-instruments by Nicholas Brosowsky (https://github.com/nbrosowsky/tonejs-instruments),
+licensed CC-BY 3.0 (https://creativecommons.org/licenses/by/3.0/); originally from the University of Iowa Musical Instrument Samples.
+Converted to mono MP3 and trimmed for Stompbox Studio.
