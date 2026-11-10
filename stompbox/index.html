@@ -1380,6 +1380,9 @@ const GROOVES = {
   'Lo-fi':             { k: 'x......x.x......', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', o: '................', snare: 'snare' },
   'Reggaeton':         { k: 'x...x...x...x...', s: '...x..x....x..x.', h: 'x.x.x.x.x.x.x.x.', o: '................', snare: 'snare' },
   'Half-time':         { k: 'x.........x.....', s: '........x.......', h: 'x...x...x...x...', o: '................', snare: 'snare' },
+  // r: ride cymbal, g: quiet ghost snares; kv / sv: how hard the kick / snare are played
+  'Jazz ride':         { k: 'x.......x.......', s: '..........x....x', h: '....x.......x...', o: '................', r: 'x...x.x.x...x.x.', snare: 'snare', kv: 0.3, sv: 0.4, ride: true },
+  'Breakbeat':         { k: 'x.........x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', o: '..............x.', g: '.......x.x....x.', snare: 'snare' },
 };
 function genGroove(p, st, bar) {
   const g = GROOVES[p.style] || GROOVES['Boom bap'];
@@ -1388,10 +1391,13 @@ function genGroove(p, st, bar) {
     if (used.has(drum + off)) return; used.add(drum + off);
     ev.push({ drum, vel: clamp(vel, 0.05, 1), off });
   };
-  if (g.k[st] === 'x') add('kick', st % 4 === 0 ? 1 : 0.85);
-  if (g.s[st] === 'x') add(g.snare, 0.95);
+  if (g.k[st] === 'x') add('kick', (st % 4 === 0 ? 1 : 0.85) * (g.kv || 1));
+  if (g.s[st] === 'x') add(g.snare, 0.95 * (g.sv || 1));
+  if (g.g && g.g[st] === 'x' && p.busy > 0.3) add('snare', 0.25);
+  if (g.r && g.r[st] === 'x') add('ride', st % 4 === 0 ? 0.9 : 0.7);
   let hat = g.h[st] === 'x';
-  if (p.busy < 0.34) hat = hat && st % 4 === 0; else if (p.busy > 0.67) hat = true;
+  if (g.ride) { if (hat) add('hat', 0.5); hat = false; } // jazz: the hi-hat pedal on 2 and 4, time kept on the ride
+  else if (p.busy < 0.34) hat = hat && st % 4 === 0; else if (p.busy > 0.67) hat = true;
   if (g.o[st] === 'x') add('open', 0.6);
   else if (hat) add('hat', st % 4 === 0 ? 0.75 : st % 2 === 0 ? 0.5 : 0.35);
   if (g.roll && p.busy > 0.5 && (st === 7 || st === 15) && Math.random() < p.busy) add('hat', 0.35, stepDur() / 2);
@@ -2819,11 +2825,11 @@ function mkTrack(name, color, role, chain) {
 const C = TRACK_COLORS;
 const STARTERS = {
   party90s: { label: '90s party mix (hip-hop to house)', bpm: 108, root: 9, scale: 'minor', prog: 'anthem', swing: 0.16, tracks: () => [
-    mkTrack('Boom bap', C[0], 'drums', [['groove', { style: 'Boom bap', busy: 0.55, fills: 0.45, human: 0.45 }], ['drums', { kit: 'Punchy', punch: 0.7, snap: 0.5, shimmer: 0.45 }], ['lofi', { wow: 0.05, crush: 0.3, muffle: 0.25 }], ['comp', { squash: 0.55, boost: 0.3 }], ['out', { vol: 0.76 }]]),
-    mkTrack('House drums', C[7], 'drums', [['groove', { style: 'Four on the floor', busy: 0.75, fills: 0.3, human: 0.15 }], ['drums', { kit: 'Punchy', punch: 0.6, snap: 0.4, shimmer: 0.6 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.72 }]]),
+    mkTrack('Boom bap', C[0], 'drums', [['groove', { style: 'Boom bap', busy: 0.55, fills: 0.45, human: 0.45 }], ['drums', { kit: 'Studio (real)', punch: 0.7, snap: 0.55, shimmer: 0.4 }], ['lofi', { wow: 0.05, crush: 0.3, muffle: 0.25 }], ['comp', { squash: 0.55, boost: 0.3 }], ['out', { vol: 0.76 }]]),
+    mkTrack('House drums', C[7], 'drums', [['groove', { style: 'Four on the floor', busy: 0.75, fills: 0.3, human: 0.15 }], ['drums', { kit: 'Punchy', punch: 0.6, snap: 0.4, shimmer: 0.6, layer: 'Sub boom', layAmt: 0.2, layLen: 0.3 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.72 }]]),
     mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Syncopated', octave: '1' }], ['synth', { preset: 'Deep Bass', bright: 0.32 }], ['dist', { grit: 0.18, tone: 0.4, mix: 0.5 }], ['out', { vol: 0.74 }]]),
     mkTrack('Piano', C[1], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Rich (7ths)', octave: '3' }], ['inst', { inst: 'Upright Piano', bright: 0.85 }], ['comp', { squash: 0.3, boost: 0.15 }], ['reverb', { space: 0.35, mix: 0.18 }], ['out', { vol: 0.48 }]]),
-    mkTrack('Organ stabs', C[6], 'harmony', [['chords', { rhythm: 'Pulse', flavor: 'Rich (7ths)', octave: '3' }], ['synth', { preset: 'Organ' }], ['filter', { bright: 0.55, wobble: 0.4, reso: 0.35, rate: '2 bars' }], ['out', { vol: 0.58 }]]),
+    mkTrack('Organ stabs', C[6], 'harmony', [['chords', { rhythm: 'Pulse', flavor: 'Rich (7ths)', octave: '3' }], ['inst', { inst: 'Organ' }], ['filter', { bright: 0.55, wobble: 0.4, reso: 0.35, rate: '2 bars' }], ['out', { vol: 0.58, duck: 0.35 }]]),
     mkTrack('Strings', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Simple', octave: '3' }], ['inst', { inst: 'Violins', soft: 0.5 }], ['reverb', { space: 0.65, mix: 0.35 }], ['out', { vol: 0.64 }]]),
     mkTrack('Horns', C[4], 'lead', [['melody', { density: 0.35, range: 'Mid', seed: 90 }], ['inst', { inst: 'Trumpet' }], ['delay', { time: '1/8 dotted', repeats: 0.3, mix: 0.2 }], ['reverb', { space: 0.45, mix: 0.22 }], ['out', { vol: 0.62 }]]),
   ], scenes: [
@@ -2842,70 +2848,62 @@ const STARTERS = {
     mkTrack('Cellos', C[2], 'bass', [['bass', { style: 'Pulse', octave: '2' }], ['inst', { inst: 'Cellos', soft: 0.12 }], ['reverb', { space: 0.6, mix: 0.25 }], ['out', { vol: 0.72 }]]),
     mkTrack('Harp', C[3], 'harmony', [['chords', { rhythm: 'Arp 8ths', flavor: 'Simple', octave: '4' }], ['inst', { inst: 'Harp' }], ['reverb', { space: 0.6, mix: 0.3 }], ['out', { vol: 0.62 }]]),
     mkTrack('Horn', C[4], 'lead', [['melody', { density: 0.3, range: 'Low', seed: 4 }], ['inst', { inst: 'French Horn' }], ['reverb', { space: 0.75, mix: 0.35 }], ['out', { vol: 0.72 }]]),
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Half-time', busy: 0.3, fills: 0.6, human: 0.2 }], ['drums', { kit: 'Big 808', punch: 0.8, snap: 0.5, shimmer: 0.3 }], ['reverb', { space: 0.65, mix: 0.3 }], ['out', { vol: 0.72 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Half-time', busy: 0.3, fills: 0.6, human: 0.2 }], ['drums', { kit: 'Studio (real)', punch: 0.8, snap: 0.45, shimmer: 0.45, layer: 'Thunder', layAmt: 0.4, layLen: 0.6 }], ['reverb', { space: 0.65, mix: 0.3 }], ['out', { vol: 0.72 }]]),
   ] },
-  rainy: { label: 'Rainy café (piano)', bpm: 76, root: 5, scale: 'major', prog: 'heart', swing: 0.34, tracks: () => [
+  rainy: { label: 'Rainy café (piano)', bpm: 76, root: 5, scale: 'major', prog: 'heart', swing: 0.34, fx: { hiss: 0.08 }, tracks: () => [
     mkTrack('Piano', C[1], 'harmony', [['chords', { rhythm: 'Strum', flavor: 'Rich (7ths)', octave: '3' }], ['inst', { inst: 'Upright Piano', bright: 0.7 }], ['lofi', { wow: 0.5, crush: 0.15, muffle: 0.5 }], ['chorus', { width: 0.3, speed: 0.2, mix: 0.25 }], ['reverb', { space: 0.5, mix: 0.28 }], ['out', { vol: 0.62 }]]),
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Lo-fi', busy: 0.45, fills: 0.2, human: 0.55 }], ['drums', { kit: 'Punchy', punch: 0.35, snap: 0.3, shimmer: 0.3 }], ['lofi', { wow: 0.1, crush: 0.45, muffle: 0.6 }], ['comp', { squash: 0.55, boost: 0.35 }], ['out', { vol: 0.74 }]]),
-    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Walking', octave: '2' }], ['synth', { preset: 'Deep Bass', bright: 0.18, soft: 0.1 }], ['out', { vol: 0.72 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Lo-fi', busy: 0.45, fills: 0.2, human: 0.55 }], ['drums', { kit: 'Studio (real)', punch: 0.35, snap: 0.25, shimmer: 0.3 }], ['lofi', { wow: 0.1, crush: 0.45, muffle: 0.6 }], ['comp', { squash: 0.55, boost: 0.35 }], ['out', { vol: 0.74 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Walking', octave: '2' }], ['inst', { inst: 'Bass Guitar', bright: 0.35, len: 0.45 }], ['out', { vol: 0.7 }]]),
     mkTrack('Clarinet', C[3], 'lead', [['melody', { density: 0.3, range: 'Mid', seed: 31 }], ['inst', { inst: 'Clarinet' }], ['delay', { time: '1/4 dotted', repeats: 0.35, mix: 0.22 }], ['reverb', { space: 0.55, mix: 0.3 }], ['out', { vol: 0.66 }]]),
   ] },
   island: { label: 'Island echo (marimba dub)', bpm: 92, root: 7, scale: 'mixolydian', prog: 'anthem', swing: 0.2, tracks: () => [
     mkTrack('Marimba', C[6], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Simple', octave: '3' }], ['inst', { inst: 'Marimba' }], ['delay', { time: '1/8 dotted', repeats: 0.6, mix: 0.45 }], ['filter', { bright: 0.6, wobble: 0.4, reso: 0.35, rate: 'Half bar' }], ['out', { vol: 0.6 }]]),
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Half-time', busy: 0.55, fills: 0.4, human: 0.3 }], ['drums', { kit: 'Big 808', punch: 0.6, snap: 0.55 }], ['reverb', { space: 0.45, mix: 0.3 }], ['delay', { time: '1/4', repeats: 0.35, mix: 0.15 }], ['out', { vol: 0.76 }]]),
-    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Syncopated', octave: '1' }], ['synth', { preset: 'Deep Bass', bright: 0.3 }], ['dist', { grit: 0.2, tone: 0.35, mix: 0.6 }], ['out', { vol: 0.74 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Half-time', busy: 0.55, fills: 0.4, human: 0.3 }], ['drums', { kit: 'Studio (real)', punch: 0.6, snap: 0.6, shimmer: 0.35 }], ['reverb', { space: 0.45, mix: 0.3 }], ['delay', { time: '1/4', repeats: 0.35, mix: 0.15 }], ['out', { vol: 0.76 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Syncopated', octave: '1' }], ['inst', { inst: 'Bass Guitar', bright: 0.3, len: 0.4 }], ['amp', { model: 'Bass Tube', cab: '8x10 bass', gain: 0.4, bass: 0.6, mid: 0.45, treble: 0.35, vol: 0.5 }], ['out', { vol: 0.8 }]]),
+    mkTrack('Organ', C[5], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Simple', octave: '3' }], ['inst', { inst: 'Organ', len: 0.2 }], ['reverb', { space: 0.35, mix: 0.15 }], ['out', { vol: 0.42 }]]),
     mkTrack('Trumpet', C[4], 'lead', [['melody', { density: 0.25, range: 'Mid', seed: 52 }], ['inst', { inst: 'Trumpet' }], ['delay', { time: '1/8 dotted', repeats: 0.5, mix: 0.3 }], ['reverb', { space: 0.65, mix: 0.35 }], ['out', { vol: 0.62 }]]),
-  ] },
-  musicbox: { label: 'Haunted music box', bpm: 70, root: 9, scale: 'phrygian', prog: 'falling', swing: 0, tracks: () => [
-    mkTrack('Music box', C[3], 'harmony', [['chords', { rhythm: 'Arp 16ths', flavor: 'Simple', octave: '4' }], ['inst', { inst: 'Glockenspiel', len: 0.35 }], ['lofi', { wow: 0.75, crush: 0.3, muffle: 0.35 }], ['reverb', { space: 0.9, mix: 0.5 }], ['out', { vol: 0.58 }]]),
-    mkTrack('Cello drone', C[2], 'bass', [['bass', { style: 'Long notes', octave: '2' }], ['inst', { inst: 'Cellos', soft: 0.5, len: 0.7 }], ['dist', { grit: 0.55, tone: 0.3, mix: 0.35 }], ['reverb', { space: 0.8, mix: 0.4 }], ['out', { vol: 0.72 }]]),
-    mkTrack('Strings', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Spacious', octave: '3' }], ['inst', { inst: 'Violins', soft: 0.8, len: 0.7 }], ['filter', { bright: 0.4, wobble: 0.5, reso: 0.3, rate: '2 bars' }], ['chorus', { width: 0.6, speed: 0.15, mix: 0.4 }], ['out', { vol: 0.64 }]]),
-    mkTrack('Flute', C[1], 'lead', [['melody', { density: 0.2, range: 'Mid', seed: 13 }], ['inst', { inst: 'Flute' }], ['delay', { time: '1/4 dotted', repeats: 0.65, mix: 0.35 }], ['reverb', { space: 0.85, mix: 0.45 }], ['out', { vol: 0.66 }]]),
-    mkTrack('Heartbeat', C[0], 'drums', [['groove', { style: 'Half-time', busy: 0.1, fills: 0.1, human: 0.2 }], ['drums', { kit: 'Big 808', punch: 0.9, snap: 0.6, shimmer: 0.1 }], ['reverb', { space: 0.7, mix: 0.45 }], ['out', { vol: 0.7 }]]),
   ] },
   chamber: { label: 'Chamber pop (strings & piano)', bpm: 112, root: 0, scale: 'major', prog: 'pop', swing: 0, tracks: () => [
     mkTrack('Pizzicato', C[6], 'harmony', [['chords', { rhythm: 'Arp 8ths', flavor: 'Simple', octave: '4' }], ['inst', { inst: 'Pizzicato strings' }], ['delay', { time: '1/8', repeats: 0.25, mix: 0.2 }], ['reverb', { space: 0.4, mix: 0.25 }], ['out', { vol: 0.7 }]]),
     mkTrack('Piano', C[1], 'harmony', [['chords', { rhythm: 'Pulse', flavor: 'Simple', octave: '3' }], ['inst', { inst: 'Upright Piano' }], ['comp', { squash: 0.35, boost: 0.2 }], ['reverb', { space: 0.45, mix: 0.25 }], ['out', { vol: 0.56 }]]),
     mkTrack('Cellos', C[2], 'bass', [['bass', { style: 'Root & fifth', octave: '2' }], ['inst', { inst: 'Cellos', soft: 0.1 }], ['reverb', { space: 0.4, mix: 0.2 }], ['out', { vol: 0.74 }]]),
     mkTrack('Flute', C[3], 'lead', [['melody', { density: 0.5, range: 'Mid', seed: 8 }], ['inst', { inst: 'Flute' }], ['reverb', { space: 0.5, mix: 0.3 }], ['out', { vol: 0.66 }]]),
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Rock', busy: 0.4, fills: 0.4, human: 0.35 }], ['drums', { kit: 'Tight', punch: 0.45, snap: 0.4, shimmer: 0.4 }], ['comp', { squash: 0.4, boost: 0.25 }], ['reverb', { space: 0.3, mix: 0.15 }], ['out', { vol: 0.66 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Rock', busy: 0.4, fills: 0.4, human: 0.35 }], ['drums', { kit: 'Studio (real)', punch: 0.45, snap: 0.4, shimmer: 0.4 }], ['comp', { squash: 0.4, boost: 0.25 }], ['reverb', { space: 0.3, mix: 0.15 }], ['out', { vol: 0.66 }]]),
   ] },
   orchtrap: { label: 'Orchestral trap', bpm: 140, root: 4, scale: 'minor', prog: 'epic', swing: 0, tracks: () => [
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Trap', busy: 0.85, fills: 0.35, human: 0.1 }], ['drums', { kit: 'Tight', punch: 0.5, snap: 0.35, shimmer: 0.75 }], ['comp', { squash: 0.5, boost: 0.25 }], ['out', { vol: 0.76 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Trap', busy: 0.85, fills: 0.35, human: 0.1 }], ['drums', { kit: 'Tight', punch: 0.55, snap: 0.35, shimmer: 0.75, layer: 'Sub boom', layAmt: 0.3, layLen: 0.4 }], ['comp', { squash: 0.5, boost: 0.25 }], ['out', { vol: 0.76 }]]),
     mkTrack('808', C[4], 'bass', [['groove', { style: 'Trap', busy: 0.2, fills: 0, human: 0 }], ['synth', { preset: '808 Bass' }], ['dist', { grit: 0.35, tone: 0.45, mix: 0.5 }], ['out', { vol: 0.8 }]]),
     mkTrack('Strings', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Simple', octave: '3' }], ['inst', { inst: 'Violins', soft: 0.3 }], ['filter', { bright: 0.55, wobble: 0.35, reso: 0.25, rate: 'Beat' }], ['reverb', { space: 0.6, mix: 0.3 }], ['out', { vol: 0.66 }]]),
     mkTrack('Horns', C[4], 'lead', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Simple', octave: '3' }], ['inst', { inst: 'French Horn', soft: 0.05 }], ['comp', { squash: 0.5, boost: 0.3 }], ['reverb', { space: 0.7, mix: 0.35 }], ['out', { vol: 0.6 }]]),
     mkTrack('Pizz lead', C[3], 'lead', [['melody', { density: 0.6, range: 'High', seed: 77 }], ['inst', { inst: 'Pizzicato strings' }], ['delay', { time: '1/16', repeats: 0.3, mix: 0.2 }], ['out', { vol: 0.62 }]]),
   ] },
-  lofi: { label: 'Lo-fi chill', bpm: 80, root: 2, scale: 'dorian', prog: 'jazzy', swing: 0.32, tracks: () => [
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Lo-fi', busy: 0.5, human: 0.5 }], ['drums', { kit: 'Punchy', punch: 0.4, snap: 0.35, shimmer: 0.35 }], ['lofi', { wow: 0.15, crush: 0.25, muffle: 0.45 }], ['out', { vol: 0.8 }]]),
+  lofi: { label: 'Lo-fi chill', bpm: 80, root: 2, scale: 'dorian', prog: 'jazzy', swing: 0.32, fx: { hiss: 0.1 }, tracks: () => [
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Lo-fi', busy: 0.5, human: 0.5 }], ['drums', { kit: 'Studio (real)', punch: 0.55, snap: 0.35, shimmer: 0.3 }], ['lofi', { wow: 0.15, crush: 0.3, muffle: 0.5 }], ['comp', { squash: 0.5, boost: 0.3 }], ['out', { vol: 0.82 }]]),
     mkTrack('Keys', C[1], 'harmony', [['chords', { rhythm: 'Strum', flavor: 'Rich (7ths)', octave: '3' }], ['synth', { preset: 'E-Piano' }], ['lofi', { wow: 0.45, crush: 0.1, muffle: 0.5 }], ['reverb', { space: 0.5, mix: 0.3 }], ['out', { vol: 0.74 }]]),
-    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Root & fifth', octave: '2' }], ['synth', { preset: 'Deep Bass', bright: 0.22 }], ['out', { vol: 0.74 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Root & fifth', octave: '2' }], ['inst', { inst: 'Bass Guitar', bright: 0.45, len: 0.4 }], ['lofi', { wow: 0.1, crush: 0, muffle: 0.35 }], ['out', { vol: 0.7 }]]),
     mkTrack('Melody', C[3], 'lead', [['melody', { density: 0.35, range: 'Mid', seed: 11 }], ['synth', { preset: 'Glass Pluck' }], ['delay', { time: '1/8 dotted', repeats: 0.35, mix: 0.25 }], ['reverb', { space: 0.55, mix: 0.35 }], ['out', { vol: 0.64 }]]),
   ] },
   synthwave: { label: 'Synthwave', bpm: 100, root: 9, scale: 'minor', prog: 'epic', swing: 0, tracks: () => [
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Rock', busy: 0.55, fills: 0.5, human: 0.15 }], ['drums', { kit: 'Punchy', punch: 0.6, snap: 0.55 }], ['reverb', { space: 0.3, mix: 0.18 }], ['comp', { squash: 0.5, boost: 0.3 }], ['out', { vol: 0.8 }]]),
-    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Octave bounce', octave: '2' }], ['synth', { preset: 'Deep Bass', bright: 0.42 }], ['out', { vol: 0.7 }]]),
-    mkTrack('Pad', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Simple', octave: '3' }], ['synth', { preset: 'Warm Pad' }], ['chorus', { width: 0.7, mix: 0.5 }], ['reverb', { space: 0.7, mix: 0.4 }], ['out', { vol: 0.64 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Rock', busy: 0.55, fills: 0.5, human: 0.15 }], ['drums', { kit: 'Punchy', punch: 0.6, snap: 0.55, layer: 'Thunder', layAmt: 0.15, layLen: 0.25 }], ['reverb', { space: 0.45, mix: 0.22 }], ['comp', { squash: 0.5, boost: 0.3 }], ['out', { vol: 0.8 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Octave bounce', octave: '2' }], ['synth', { preset: 'Deep Bass', bright: 0.42 }], ['out', { vol: 0.72, duck: 0.3 }]]),
+    mkTrack('Pad', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Simple', octave: '3' }], ['synth', { preset: 'Warm Pad' }], ['chorus', { width: 0.7, mix: 0.5 }], ['reverb', { space: 0.7, mix: 0.4 }], ['out', { vol: 0.66, duck: 0.5 }]]),
     mkTrack('Lead', C[4], 'lead', [['melody', { density: 0.5, range: 'Mid', seed: 3 }], ['synth', { preset: 'Retro Lead' }], ['delay', { time: '1/8 dotted', repeats: 0.45, mix: 0.3 }], ['reverb', { space: 0.6, mix: 0.3 }], ['out', { vol: 0.56 }]]),
   ] },
   trap: { label: 'Trap', bpm: 140, root: 1, scale: 'minor', prog: 'falling', swing: 0, tracks: () => [
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Trap', busy: 0.85, fills: 0.3, human: 0.15 }], ['drums', { kit: 'Tight', punch: 0.5, snap: 0.3, shimmer: 0.7 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.78 }]]),
-    mkTrack('808', C[4], 'bass', [['groove', { style: 'Trap', busy: 0.2, fills: 0, human: 0 }], ['synth', { preset: '808 Bass' }], ['dist', { grit: 0.25, tone: 0.4, mix: 0.5 }], ['out', { vol: 0.8 }]]),
-    mkTrack('Bells', C[3], 'lead', [['melody', { density: 0.55, range: 'High', seed: 5 }], ['synth', { preset: 'Bell' }], ['reverb', { space: 0.6, mix: 0.35 }], ['out', { vol: 0.5 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Trap', busy: 0.85, fills: 0.3, human: 0.15 }], ['drums', { kit: 'Tight', punch: 0.55, snap: 0.3, shimmer: 0.7, layer: 'Sub boom', layAmt: 0.35, layLen: 0.45 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.8 }]]),
+    mkTrack('808', C[4], 'bass', [['groove', { style: 'Trap', busy: 0.2, fills: 0, human: 0 }], ['synth', { preset: '808 Bass' }], ['dist', { grit: 0.3, tone: 0.4, mix: 0.5 }], ['out', { vol: 0.8 }]]),
+    mkTrack('Bells', C[3], 'lead', [['melody', { density: 0.55, range: 'High', seed: 5 }], ['synth', { preset: 'Bell' }], ['delay', { time: '1/8 dotted', repeats: 0.3, mix: 0.2 }], ['reverb', { space: 0.6, mix: 0.35 }], ['out', { vol: 0.5 }]]),
     mkTrack('Strings', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Simple', octave: '3' }], ['synth', { preset: 'Strings', bright: 0.35 }], ['filter', { bright: 0.45, wobble: 0.3, rate: '2 bars' }], ['out', { vol: 0.56 }]]),
   ] },
   house: { label: 'House', bpm: 124, root: 7, scale: 'minor', prog: 'hypno', swing: 0.1, tracks: () => [
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Four on the floor', busy: 0.7, fills: 0.2, human: 0.1 }], ['drums', { kit: 'Punchy', punch: 0.65, snap: 0.4 }], ['comp', { squash: 0.4, boost: 0.25 }], ['out', { vol: 0.78 }]]),
-    mkTrack('Stabs', C[6], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Rich (7ths)', octave: '3' }], ['synth', { preset: 'Organ' }], ['filter', { bright: 0.55, wobble: 0.35, reso: 0.4, rate: '2 bars' }], ['reverb', { space: 0.35, mix: 0.2 }], ['out', { vol: 0.66 }]]),
-    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Syncopated', octave: '1' }], ['synth', { preset: 'Deep Bass', bright: 0.3 }], ['out', { vol: 0.76 }]]),
-    mkTrack('Pluck', C[3], 'lead', [['melody', { density: 0.3, range: 'Mid', seed: 21 }], ['synth', { preset: 'Glass Pluck' }], ['delay', { time: '1/8 dotted', repeats: 0.4, mix: 0.3 }], ['out', { vol: 0.52 }]]),
-  ] },
-  ambient: { label: 'Ambient', bpm: 72, root: 4, scale: 'lydian', prog: 'hypno', swing: 0, tracks: () => [
-    mkTrack('Pad', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Spacious', octave: '3' }], ['synth', { preset: 'Warm Pad', soft: 0.8, len: 0.8 }], ['chorus', { width: 0.7, mix: 0.5 }], ['reverb', { space: 0.9, mix: 0.55 }], ['out', { vol: 0.66 }]]),
-    mkTrack('Arp', C[3], 'harmony', [['chords', { rhythm: 'Arp 8ths', flavor: 'Simple', octave: '4' }], ['synth', { preset: 'Bell' }], ['delay', { time: '1/4 dotted', repeats: 0.55, mix: 0.35 }], ['reverb', { space: 0.8, mix: 0.5 }], ['out', { vol: 0.6 }]]),
-    mkTrack('Melody', C[1], 'lead', [['melody', { density: 0.2, range: 'Mid', seed: 9 }], ['synth', { preset: 'Glass Pluck', soft: 0.2, len: 0.7 }], ['delay', { time: '1/4', repeats: 0.5, mix: 0.3 }], ['reverb', { space: 0.85, mix: 0.5 }], ['out', { vol: 0.5 }]]),
-    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Long notes', octave: '2' }], ['synth', { preset: 'Deep Bass', bright: 0.15, soft: 0.5 }], ['out', { vol: 0.6 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Four on the floor', busy: 0.75, fills: 0.2, human: 0.1 }], ['drums', { kit: 'Punchy', punch: 0.65, snap: 0.4, layer: 'Sub boom', layAmt: 0.25, layLen: 0.3 }], ['comp', { squash: 0.4, boost: 0.25 }], ['out', { vol: 0.8 }]]),
+    mkTrack('Stabs', C[6], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Rich (7ths)', octave: '3' }], ['synth', { preset: 'Organ' }], ['filter', { bright: 0.55, wobble: 0.35, reso: 0.4, rate: '2 bars' }], ['reverb', { space: 0.35, mix: 0.2 }], ['out', { vol: 0.64, duck: 0.35 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Off-beat', octave: '1' }], ['synth', { preset: 'Deep Bass', bright: 0.32 }], ['out', { vol: 0.84, duck: 0.55 }]]),
+    mkTrack('Pad', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Spacious', octave: '3' }], ['synth', { preset: 'Warm Pad' }], ['reverb', { space: 0.7, mix: 0.35 }], ['out', { vol: 0.54, duck: 0.6 }]]),
+    mkTrack('Pluck', C[3], 'lead', [['melody', { density: 0.3, range: 'Mid', seed: 21 }], ['synth', { preset: 'Glass Pluck' }], ['delay', { time: '1/8 dotted', repeats: 0.4, mix: 0.3 }], ['out', { vol: 0.52, duck: 0.25 }]]),
+  ], scenes: [
+    ['Kick & hats', ['Drums']], ['Bass in', ['Drums', 'Bass']], ['Groove', ['Drums', 'Bass', 'Stabs']],
+    ['Breakdown', ['Pad', 'Pluck']], ['Drop', ['Drums', 'Bass', 'Stabs', 'Pad', 'Pluck']], ['Outro', ['Drums', 'Bass']],
   ] },
   blank: { label: 'Empty board', bpm: 100, root: 0, scale: 'major', prog: 'pop', swing: 0, tracks: () => [Object.assign(mkTrack('Track 1', C[0], 'harmony', []), { autoRole: true })] },
 };
@@ -2913,6 +2911,7 @@ function stateFromStarter(key) {
   const s = STARTERS[key];
   const st = { v: 1, origin: s.label.replace(/ \(.*\)$/, ''), bpm: s.bpm, root: s.root, scale: s.scale, prog: s.prog, swing: s.swing, mode: 'loop', view: 'board', tracks: s.tracks(), song: { bars: 16, loop: false, cells: {} } };
   st.cur = st.tracks[0].id;
+  if (s.fx) st.fx = Object.assign({}, s.fx);
   if (s.scenes) {
     const scenes = s.scenes.map(([name, names, extra]) => Object.assign({ id: uid(), name, on: Object.fromEntries(st.tracks.map(t => [t.id, names.includes(t.name)])) }, extra || {}));
     st.live = { scenes, current: scenes[0].id, on: Object.assign({}, scenes[0].on), quant: 'phrase', energy: 0.5, auto: true };
@@ -4395,24 +4394,25 @@ Object.assign(STARTERS, {
   ], scenes: [['Just drums', ['Drums']], ['Drums + bass', ['Drums', 'Bass']], ['Bass solo', ['Bass']]] },
 
   disco: { label: 'Disco funk', bpm: 116, root: 4, scale: 'dorian', prog: 'hypno', swing: 0.08, tracks: () => [
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Four on the floor', busy: 0.8, fills: 0.4, human: 0.25 }], ['drums', { kit: 'Punchy', punch: 0.55, snap: 0.45, shimmer: 0.65 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.74 }]]),
-    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Octave bounce', octave: '2' }], ['synth', { preset: 'Deep Bass', bright: 0.45 }], ['comp', { squash: 0.4, boost: 0.2 }], ['out', { vol: 0.7 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Four on the floor', busy: 0.8, fills: 0.4, human: 0.25 }], ['drums', { kit: 'Studio (real)', punch: 0.55, snap: 0.5, shimmer: 0.6 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.74 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Octave bounce', octave: '2' }], ['inst', { inst: 'Bass Guitar', bright: 0.6, len: 0.3 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.64 }]]),
+    mkTrack('Guitar', C[7], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Rich (7ths)', octave: '4' }], ['inst', { inst: 'Clean Electric Guitar', bright: 0.8, len: 0.2 }], ['amp', { model: 'American Clean', cab: '2x12 open', gain: 0.3, bass: 0.4, mid: 0.5, treble: 0.65, vol: 0.5 }], ['chorus', { width: 0.4, speed: 0.4, mix: 0.3 }], ['out', { vol: 0.5 }]]),
     mkTrack('Keys', C[1], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Rich (7ths)', octave: '3' }], ['synth', { preset: 'E-Piano' }], ['chorus', { width: 0.5, speed: 0.35, mix: 0.4 }], ['out', { vol: 0.58 }]]),
     mkTrack('Strings', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Spacious', octave: '4' }], ['inst', { inst: 'Violins', soft: 0.55 }], ['reverb', { space: 0.55, mix: 0.3 }], ['out', { vol: 0.55 }]]),
     mkTrack('Horns', C[4], 'lead', [['melody', { density: 0.4, range: 'Mid', seed: 42 }], ['inst', { inst: 'Trumpet' }], ['delay', { time: '1/8', repeats: 0.25, mix: 0.18 }], ['out', { vol: 0.58 }]]),
     mkTrack('Pluck', C[3], 'harmony', [['chords', { rhythm: 'Arp 16ths', flavor: 'Simple', octave: '4' }], ['synth', { preset: 'Glass Pluck' }], ['filter', { bright: 0.6, wobble: 0.3, reso: 0.3, rate: 'Beat' }], ['out', { vol: 0.42 }]]),
   ], scenes: [
-    ['Intro groove', ['Drums', 'Bass']], ['Keys in', ['Drums', 'Bass', 'Keys']], ['Strings rise', ['Bass', 'Keys', 'Strings']],
-    ['Full disco', ['Drums', 'Bass', 'Keys', 'Strings', 'Horns', 'Pluck']], ['Horn hook', ['Drums', 'Bass', 'Keys', 'Horns']],
+    ['Intro groove', ['Drums', 'Bass', 'Guitar']], ['Keys in', ['Drums', 'Bass', 'Keys', 'Guitar']], ['Strings rise', ['Bass', 'Keys', 'Strings']],
+    ['Full disco', ['Drums', 'Bass', 'Keys', 'Guitar', 'Strings', 'Horns', 'Pluck']], ['Horn hook', ['Drums', 'Bass', 'Guitar', 'Horns']],
     ['Breakdown', ['Strings', 'Pluck']], ['Bass & beat', ['Drums', 'Bass']], ['Outro', ['Keys', 'Strings']],
   ] },
 
   reggaeton: { label: 'Reggaeton nights', bpm: 94, root: 7, scale: 'minor', prog: 'pop', swing: 0, tracks: () => [
-    mkTrack('Dembow', C[0], 'drums', [['groove', { style: 'Reggaeton', busy: 0.6, fills: 0.3, human: 0.15 }], ['drums', { kit: 'Tight', punch: 0.6, snap: 0.4, shimmer: 0.5 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.76 }]]),
+    mkTrack('Dembow', C[0], 'drums', [['groove', { style: 'Reggaeton', busy: 0.6, fills: 0.3, human: 0.15 }], ['drums', { kit: 'Tight', punch: 0.6, snap: 0.4, shimmer: 0.5, layer: 'Sub boom', layAmt: 0.2, layLen: 0.3 }], ['comp', { squash: 0.45, boost: 0.25 }], ['out', { vol: 0.76 }]]),
     mkTrack('808', C[4], 'bass', [['groove', { style: 'Reggaeton', busy: 0.2, fills: 0, human: 0 }], ['synth', { preset: '808 Bass' }], ['dist', { grit: 0.2, tone: 0.45, mix: 0.5 }], ['out', { vol: 0.74 }]]),
     mkTrack('Marimba', C[6], 'harmony', [['chords', { rhythm: 'Arp 8ths', flavor: 'Simple', octave: '4' }], ['inst', { inst: 'Marimba' }], ['delay', { time: '1/8 dotted', repeats: 0.3, mix: 0.2 }], ['out', { vol: 0.55 }]]),
     mkTrack('Pad', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Simple', octave: '3' }], ['synth', { preset: 'Warm Pad' }], ['out', { vol: 0.48 }]]),
-    mkTrack('Lead', C[3], 'lead', [['melody', { density: 0.5, range: 'Mid', seed: 23 }], ['synth', { preset: 'Retro Lead' }], ['delay', { time: '1/8', repeats: 0.3, mix: 0.2 }], ['reverb', { space: 0.4, mix: 0.2 }], ['out', { vol: 0.5 }]]),
+    mkTrack('Lead', C[3], 'lead', [['melody', { density: 0.5, range: 'Mid', seed: 23 }], ['inst', { inst: 'Nylon Guitar' }], ['delay', { time: '1/8', repeats: 0.3, mix: 0.2 }], ['reverb', { space: 0.4, mix: 0.2 }], ['out', { vol: 0.62 }]]),
   ], scenes: [
     ['Intro', ['Marimba', 'Pad']], ['Dembow', ['Dembow', '808']], ['Verse', ['Dembow', '808', 'Marimba']],
     ['Hook', ['Dembow', '808', 'Marimba', 'Lead', 'Pad']], ['Break', ['Pad', 'Lead']], ['Outro', ['Marimba']],
@@ -4429,39 +4429,94 @@ Object.assign(STARTERS, {
   ] },
 
   soul: { label: 'Soul ballad', bpm: 72, root: 3, scale: 'major', prog: 'heart', swing: 0.25, tracks: () => [
-    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Boom bap', busy: 0.3, fills: 0.3, human: 0.6 }], ['drums', { kit: 'Punchy', punch: 0.45, snap: 0.35, shimmer: 0.3 }], ['reverb', { space: 0.35, mix: 0.18 }], ['out', { vol: 0.7 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Boom bap', busy: 0.3, fills: 0.3, human: 0.6 }], ['drums', { kit: 'Studio (real)', punch: 0.45, snap: 0.35, shimmer: 0.3 }], ['reverb', { space: 0.35, mix: 0.18 }], ['out', { vol: 0.7 }]]),
     mkTrack('Piano', C[1], 'harmony', [['chords', { rhythm: 'Strum', flavor: 'Rich (7ths)', octave: '3' }], ['inst', { inst: 'Upright Piano' }], ['reverb', { space: 0.5, mix: 0.25 }], ['out', { vol: 0.55 }]]),
-    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Walking', octave: '2' }], ['synth', { preset: 'Deep Bass', bright: 0.2 }], ['out', { vol: 0.72 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Walking', octave: '2' }], ['inst', { inst: 'Bass Guitar', bright: 0.4, len: 0.45 }], ['out', { vol: 0.7 }]]),
     mkTrack('Strings', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Spacious', octave: '4' }], ['inst', { inst: 'Violins', soft: 0.7 }], ['reverb', { space: 0.7, mix: 0.4 }], ['out', { vol: 0.5 }]]),
-    mkTrack('Organ', C[6], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Rich (7ths)', octave: '3' }], ['synth', { preset: 'Organ' }], ['chorus', { width: 0.5, speed: 0.3, mix: 0.4 }], ['out', { vol: 0.4 }]]),
-    mkTrack('Clarinet', C[3], 'lead', [['melody', { density: 0.3, range: 'Mid', seed: 17 }], ['inst', { inst: 'Clarinet' }], ['reverb', { space: 0.55, mix: 0.3 }], ['out', { vol: 0.58 }]]),
+    mkTrack('Organ', C[6], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Rich (7ths)', octave: '3' }], ['inst', { inst: 'Organ' }], ['chorus', { width: 0.5, speed: 0.3, mix: 0.4 }], ['out', { vol: 0.4 }]]),
+    mkTrack('Sax', C[3], 'lead', [['melody', { density: 0.3, range: 'Mid', seed: 17 }], ['inst', { inst: 'Saxophone' }], ['reverb', { space: 0.55, mix: 0.3 }], ['out', { vol: 0.6 }]]),
   ], scenes: [
-    ['Piano alone', ['Piano']], ['Verse', ['Drums', 'Piano', 'Bass']], ['Chorus', ['Drums', 'Piano', 'Bass', 'Strings', 'Clarinet']],
-    ['Church organ', ['Organ', 'Strings']], ['Bridge', ['Piano', 'Clarinet', 'Strings'], { prog: 'falling' }], ['Last chorus', ['Drums', 'Piano', 'Bass', 'Strings', 'Clarinet', 'Organ'], { lift: 1 }], ['Outro', ['Piano', 'Strings']],
+    ['Piano alone', ['Piano']], ['Verse', ['Drums', 'Piano', 'Bass']], ['Chorus', ['Drums', 'Piano', 'Bass', 'Strings', 'Sax']],
+    ['Church organ', ['Organ', 'Strings']], ['Bridge', ['Piano', 'Sax', 'Strings'], { prog: 'falling' }], ['Last chorus', ['Drums', 'Piano', 'Bass', 'Strings', 'Sax', 'Organ'], { lift: 1 }], ['Outro', ['Piano', 'Strings']],
+  ] },
+
+  rock: { label: 'Rock band', bpm: 120, root: 4, scale: 'minor', prog: 'anthem', swing: 0, tracks: () => [
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Rock', busy: 0.6, fills: 0.45, human: 0.35 }], ['drums', { kit: 'Studio (real)', punch: 0.65, snap: 0.65, shimmer: 0.5 }], ['comp', { squash: 0.45, boost: 0.3 }], ['reverb', { space: 0.35, mix: 0.12 }], ['out', { vol: 0.86 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Pulse', octave: '2' }], ['inst', { inst: 'Bass Guitar', bright: 0.7, len: 0.3 }], ['amp', { model: 'Bass Tube', cab: '8x10 bass', gain: 0.5, bass: 0.35, mid: 0.65, treble: 0.5, vol: 0.5 }], ['out', { vol: 0.66 }]]),
+    mkTrack('Rhythm guitar', C[1], 'harmony', [['chords', { rhythm: 'Strum', flavor: 'Power (5ths)', octave: '2' }], ['guitar', { pickup: 'Bridge (bright)', double: 'On', mute: 0.35, feel: 0.55 }], ['amp', { model: 'British Stack', cab: '4x12 closed', gain: 0.6, bass: 0.6, mid: 0.6, treble: 0.5, vol: 0.5 }], ['reverb', { space: 0.3, mix: 0.12 }], ['out', { vol: 0.74 }]]),
+    mkTrack('Lead guitar', C[4], 'lead', [['melody', { density: 0.45, range: 'High', seed: 19 }], ['guitar', { pickup: 'Neck (warm)', double: 'Off', mute: 0, feel: 0.5 }], ['amp', { model: 'British Stack', cab: '4x12 closed', gain: 0.72, bass: 0.45, mid: 0.7, treble: 0.5, vol: 0.5 }], ['delay', { time: '1/4', repeats: 0.3, mix: 0.18 }], ['reverb', { space: 0.45, mix: 0.2 }], ['out', { vol: 0.62 }]]),
+  ], scenes: [
+    ['Riff', ['Rhythm guitar']], ['Verse', ['Drums', 'Bass', 'Rhythm guitar']], ['Chorus', ['Drums', 'Bass', 'Rhythm guitar', 'Lead guitar']],
+    ['Bass & drums', ['Drums', 'Bass']], ['Solo', ['Drums', 'Bass', 'Rhythm guitar', 'Lead guitar'], { prog: 'epic' }], ['Last chorus', ['Drums', 'Bass', 'Rhythm guitar', 'Lead guitar'], { lift: 2 }], ['Ending', ['Rhythm guitar', 'Bass']],
+  ] },
+
+  acoustic: { label: 'Acoustic songwriter', bpm: 96, root: 7, scale: 'major', prog: 'pop', swing: 0.1, tracks: () => [
+    mkTrack('Guitar', C[1], 'harmony', [['chords', { rhythm: 'Strum', flavor: 'Simple', octave: '3' }], ['inst', { inst: 'Acoustic Guitar', bright: 0.85, len: 0.5 }], ['reverb', { space: 0.4, mix: 0.18 }], ['out', { vol: 0.74 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Root & fifth', octave: '2' }], ['inst', { inst: 'Bass Guitar', bright: 0.5, len: 0.4 }], ['out', { vol: 0.68 }]]),
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Rock', busy: 0.25, fills: 0.2, human: 0.55 }], ['drums', { kit: 'Studio (real)', punch: 0.4, snap: 0.3, shimmer: 0.3 }], ['reverb', { space: 0.4, mix: 0.18 }], ['out', { vol: 0.66 }]]),
+    mkTrack('Nylon', C[3], 'lead', [['melody', { density: 0.3, range: 'Mid', seed: 26 }], ['inst', { inst: 'Nylon Guitar' }], ['reverb', { space: 0.5, mix: 0.25 }], ['out', { vol: 0.6 }]]),
+    mkTrack('My voice', C[4], 'lead', [['recorder', {}], ['mic', { model: 'Vintage tube condenser' }], ['comp', { squash: 0.4, boost: 0.3 }], ['reverb', { space: 0.45, mix: 0.18 }], ['out', { vol: 0.8 }]]),
+  ], scenes: [
+    ['Guitar alone', ['Guitar', 'My voice']], ['Verse', ['Guitar', 'Bass', 'My voice']], ['Chorus', ['Guitar', 'Bass', 'Drums', 'My voice']],
+    ['Guitar break', ['Guitar', 'Bass', 'Drums', 'Nylon']], ['Quiet verse', ['Guitar', 'My voice']], ['Last chorus', ['Guitar', 'Bass', 'Drums', 'Nylon', 'My voice'], { lift: 1 }],
+  ] },
+
+  jazz: { label: 'Jazz trio', bpm: 132, root: 10, scale: 'major', prog: 'jazzy', swing: 0.45, tracks: () => [
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Jazz ride', busy: 0.5, fills: 0.25, human: 0.5 }], ['drums', { kit: 'Studio (real)', punch: 0.4, snap: 0.35, shimmer: 0.7 }], ['reverb', { space: 0.35, mix: 0.15 }], ['out', { vol: 0.9 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Walking', octave: '2' }], ['inst', { inst: 'Bass Guitar', bright: 0.35, len: 0.5 }], ['out', { vol: 0.72 }]]),
+    mkTrack('Piano', C[1], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Rich (7ths)', octave: '3' }], ['inst', { inst: 'Upright Piano', bright: 0.7 }], ['reverb', { space: 0.4, mix: 0.18 }], ['out', { vol: 0.6 }]]),
+    mkTrack('Sax', C[3], 'lead', [['melody', { density: 0.45, range: 'Mid', seed: 58 }], ['inst', { inst: 'Saxophone' }], ['reverb', { space: 0.45, mix: 0.2 }], ['out', { vol: 0.64 }]]),
+  ], scenes: [
+    ['Piano intro', ['Piano']], ['Trio', ['Drums', 'Bass', 'Piano']], ['Head (sax)', ['Drums', 'Bass', 'Piano', 'Sax']],
+    ['Bass solo', ['Drums', 'Bass']], ['Sax solo', ['Drums', 'Bass', 'Sax'], { prog: 'heart' }], ['Out head', ['Drums', 'Bass', 'Piano', 'Sax']],
+  ] },
+
+  boombap: { label: 'Boom bap', bpm: 90, root: 2, scale: 'minor', prog: 'jazzy', swing: 0.18, fx: { hiss: 0.12 }, tracks: () => [
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Boom bap', busy: 0.55, fills: 0.35, human: 0.4 }], ['drums', { kit: 'Studio (real)', punch: 0.75, snap: 0.6, shimmer: 0.35 }], ['lofi', { wow: 0.1, crush: 0.25, muffle: 0.35 }], ['comp', { squash: 0.55, boost: 0.4 }], ['out', { vol: 0.86 }]]),
+    mkTrack('Bass', C[2], 'bass', [['bass', { style: 'Syncopated', octave: '1' }], ['synth', { preset: 'Deep Bass', bright: 0.25 }], ['out', { vol: 0.76 }]]),
+    mkTrack('Keys', C[1], 'harmony', [['chords', { rhythm: 'Strum', flavor: 'Rich (7ths)', octave: '3' }], ['synth', { preset: 'E-Piano' }], ['lofi', { wow: 0.35, crush: 0.15, muffle: 0.35 }], ['reverb', { space: 0.45, mix: 0.2 }], ['out', { vol: 0.7 }]]),
+    mkTrack('Sax', C[3], 'lead', [['melody', { density: 0.25, range: 'Mid', seed: 71 }], ['inst', { inst: 'Saxophone' }], ['lofi', { wow: 0.25, crush: 0.1, muffle: 0.4 }], ['reverb', { space: 0.5, mix: 0.25 }], ['out', { vol: 0.58 }]]),
+  ], scenes: [
+    ['Sample intro', ['Keys']], ['Beat drops', ['Drums', 'Bass', 'Keys']], ['Verse', ['Drums', 'Bass', 'Keys']],
+    ['Hook', ['Drums', 'Bass', 'Keys', 'Sax']], ['Beat only', ['Drums', 'Bass']], ['Outro', ['Keys', 'Sax']],
+  ] },
+
+  dnb: { label: 'Drum & bass', bpm: 172, root: 5, scale: 'minor', prog: 'epic', swing: 0, tracks: () => [
+    mkTrack('Drums', C[0], 'drums', [['groove', { style: 'Breakbeat', busy: 0.7, fills: 0.4, human: 0.15 }], ['drums', { kit: 'Studio (real)', punch: 0.7, snap: 0.75, shimmer: 0.5 }], ['comp', { squash: 0.6, boost: 0.45 }], ['reverb', { space: 0.25, mix: 0.1 }], ['out', { vol: 0.84 }]]),
+    mkTrack('Sub bass', C[2], 'bass', [['bass', { style: 'Rolling', octave: '1' }], ['synth', { preset: 'Deep Bass', bright: 0.22 }], ['dist', { grit: 0.25, tone: 0.35, mix: 0.25 }], ['out', { vol: 0.8, duck: 0.25 }]]),
+    mkTrack('Pad', C[5], 'harmony', [['chords', { rhythm: 'Hold', flavor: 'Rich (7ths)', octave: '3' }], ['synth', { preset: 'Warm Pad' }], ['reverb', { space: 0.75, mix: 0.4 }], ['out', { vol: 0.56, duck: 0.3 }]]),
+    mkTrack('Keys', C[1], 'harmony', [['chords', { rhythm: 'Off-beat stabs', flavor: 'Rich (7ths)', octave: '4' }], ['synth', { preset: 'E-Piano' }], ['delay', { time: '1/8 dotted', repeats: 0.3, mix: 0.2 }], ['out', { vol: 0.6 }]]),
+    mkTrack('Lead', C[4], 'lead', [['melody', { density: 0.4, range: 'Mid', seed: 33 }], ['synth', { preset: 'Retro Lead', bright: 0.6 }], ['delay', { time: '1/4', repeats: 0.3, mix: 0.2 }], ['reverb', { space: 0.5, mix: 0.22 }], ['out', { vol: 0.46 }]]),
+  ], scenes: [
+    ['Intro pads', ['Pad']], ['Build', ['Pad', 'Keys', 'Drums']], ['Drop', ['Drums', 'Sub bass', 'Keys', 'Lead']],
+    ['Breakdown', ['Pad', 'Keys']], ['Drop 2', ['Drums', 'Sub bass', 'Pad', 'Keys', 'Lead'], { lift: 1 }], ['Outro', ['Drums', 'Pad']],
   ] },
 });
 
 /* ---------- categories: [group, short description, optional new label] ---------- */
-const STARTER_GROUPS = ['Start here', 'Hip-hop & beats', 'Dance & electronic', 'Chill & lo-fi', 'Cinematic & orchestral'];
+const STARTER_GROUPS = ['Start here', 'Bands & songwriters', 'Hip-hop & beats', 'Dance & electronic', 'Chill & lo-fi', 'Cinematic & orchestral'];
 const STARTER_INFO = {
   firstbeat: ['Start here', 'Just drums and a bassline, already wired. The easiest place to start tinkering.'],
-  lofi:      ['Start here', 'Dusty drums, jazzy electric piano and a soft pluck tune. Instant study beats.'],
+  lofi:      ['Start here', 'A real drum kit through Dusty Tape, jazzy electric piano, a bass guitar and tape hiss on the mix. Instant study beats.'],
   blank:     ['Start here', 'One empty track. Build anything you like from the parts bin.'],
+  rock:      ['Bands & songwriters', 'Modelled electric guitars into a British Stack amp, a bass guitar through a bass amp, a recorded drum kit. Turn the amp’s Gain to hear it crunch.'],
+  acoustic:  ['Bands & songwriters', 'Acoustic and nylon guitars, bass guitar and soft drums, plus a Recorder with a vintage Mic ready for your voice.'],
+  jazz:      ['Bands & songwriters', 'Swung ride cymbal, walking bass guitar, piano comping and a sax. Six scenes, solos included.'],
+  boombap:   ['Hip-hop & beats', 'A heavy, swung real drum kit through tape, a deep bass, warm keys, a dusty sax and hiss on the mix.'],
   party90s:  ['Hip-hop & beats', 'Nine scenes from boom bap to piano house. The best showcase for Live mode and sets.', '90s party mix'],
-  trap:      ['Hip-hop & beats', 'Rolling hi-hats, a distorted 808 and spooky bells.'],
+  trap:      ['Hip-hop & beats', 'Rolling hi-hats, a distorted 808, a Sub boom layered under the kick, and spooky bells.'],
   orchtrap:  ['Hip-hop & beats', 'Trap drums and 808 under pulsing violins, horn stabs and a plucked lead.'],
   reggaeton: ['Hip-hop & beats', 'The dembow rhythm, a punchy 808, marimba arpeggios and a retro lead.'],
-  house:     ['Dance & electronic', 'Four-on-the-floor with off-beat organ stabs and a filter that breathes.'],
-  disco:     ['Dance & electronic', 'Bouncing octave bass, electric piano stabs, string swells and horns. Eight scenes.'],
-  synthwave: ['Dance & electronic', 'An 80s night drive: big drums, octave bass, wide pads and a retro lead.'],
+  house:     ['Dance & electronic', 'Four on the floor, an off-beat bass, organ stabs and pads that pump on every kick (Duck). Six scenes with a drop.'],
+  dnb:       ['Dance & electronic', 'Fast breakbeats on a real kit over a rolling sub bass, with pads, keys and two drops.'],
+  disco:     ['Dance & electronic', 'Bouncing bass guitar, a funky clean electric guitar, electric piano, string swells and horns. Eight scenes.'],
+  synthwave: ['Dance & electronic', 'An 80s night drive: big drums with a thunder layer, octave bass, pumping wide pads and a retro lead.'],
   arcade:    ['Dance & electronic', 'Chiptune energy: square waves crushed by Dusty Tape and fast arpeggios.'],
-  rainy:     ['Chill & lo-fi', 'Swung piano through tape wobble, a walking bass and a clarinet tune.', 'Rainy café'],
-  soul:      ['Chill & lo-fi', 'Slow and warm: real piano and strings, walking bass, organ and clarinet.'],
-  island:    ['Chill & lo-fi', 'Marimba chords bouncing through echo and a wobbling filter, dub style.', 'Island echo'],
-  ambient:   ['Chill & lo-fi', 'Slow, spacious pads, bell arpeggios and long echoes. No drums.'],
-  cinematic: ['Cinematic & orchestral', 'Real strings, cellos, harp and French horn over a big half-time beat.', 'Cinematic'],
+  rainy:     ['Chill & lo-fi', 'Swung piano through tape wobble, brushed real drums, a walking bass guitar and a clarinet tune.', 'Rainy café'],
+  soul:      ['Chill & lo-fi', 'Slow and warm: real piano, drums and strings, walking bass guitar, organ and saxophone.'],
+  island:    ['Chill & lo-fi', 'Marimba and organ skanks through echo, a bass guitar through a tube amp, dub style.', 'Island echo'],
+  cinematic: ['Cinematic & orchestral', 'Real strings, cellos, harp and French horn over big half-time drums with a thunder layer.', 'Cinematic'],
   chamber:   ['Cinematic & orchestral', 'Plucked strings, bright piano, cellos and flute over light drums.', 'Chamber pop'],
-  musicbox:  ['Cinematic & orchestral', 'A warped glockenspiel, droning cellos and a ghostly flute. Spooky.'],
 };
 for (const [k, [group, blurb, label]] of Object.entries(STARTER_INFO)) if (STARTERS[k]) Object.assign(STARTERS[k], { group, blurb }, label ? { label } : {});
 const SET_SKIP = new Set(['blank', 'firstbeat']); // too bare for an instant set
