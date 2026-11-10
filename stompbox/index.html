@@ -170,6 +170,11 @@ svg.wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;poin
 @keyframes flow{to{stroke-dashoffset:-18}}
 @keyframes flow2{to{stroke-dashoffset:-38}}
 .wire.temp{opacity:.8}
+.wire-lbl rect{fill:#15171c;stroke:var(--ctl);stroke-width:1.5}
+.wire-lbl text{fill:var(--ctl);font:700 12px var(--f-mono,monospace)}
+.wire-lbl.empty,.wire-lbl[data-k=""]{display:none}
+.node .scr.tap{cursor:pointer}
+.stack-arrow .sa-now{color:var(--ctl);font-weight:700;letter-spacing:.04em;text-transform:none;margin-left:2px}
 
 /* ---------- nodes (pedal enclosures) ---------- */
 .node{position:absolute;width:196px;border-radius:12px;background:linear-gradient(175deg,color-mix(in srgb,var(--nc) 92%,#fff) 0%,var(--nc) 40%,color-mix(in srgb,var(--nc) 82%,#000) 100%);color:var(--ink-on);box-shadow:0 2px 0 color-mix(in srgb,var(--nc) 55%,#000),0 12px 22px #0007;user-select:none;-webkit-user-select:none;touch-action:none;cursor:default}
@@ -2364,7 +2369,7 @@ function playSong(st, bar, time, main) {
       let evs = T.gen(!live ? np : n.type === 'groove' ? LIVE.energize(np) : n.type === 'melody' && main ? LIVE.vary(np) : np, st, n.type === 'pattern' ? patternBar(tr, n, bar) : bar);
       if (live && main && n.type === 'groove') evs = LIVE.decorate(evs, st, stepCount);
       if (!evs.length) continue;
-      if (main && typeof lookHit === 'function') { const k = tr.id + ':' + n.id; Tone.Draw.schedule(() => lookHit(k, 'notes'), time); } // the cable glows
+      if (main && typeof lookHit === 'function') { const k = tr.id + ':' + n.id, e2 = evs; Tone.Draw.schedule(() => { lookHit(k, 'notes'); lookSent(k, e2); }, time + swing); } // the cable glows and the screens show the notes
       for (const c of tr.cables) if (c.from === n.id) { const tg = rt.nodes[c.to]; if (tg && tg.play) tg.play(evs, time + swing); }
     }
   }
@@ -3637,7 +3642,7 @@ function renderBoard() {
     const d = flowDepth(tr), order = tr.nodes.slice().sort((a, b) => d[a.id] - d[b.id] || a.y - b.y || a.x - b.x);
     order.forEach((n, i) => {
       if (i) { const prev = order[i - 1], c = tr.cables.find(x => x.from === prev.id && x.to === n.id);
-        w.append(h('div', { class: 'stack-arrow' + (c ? ' ' + c.kind : ''), 'aria-hidden': 'true' }, c ? (c.kind === 'ctl' ? 'notes' : 'sound') : '')); }
+        w.append(h('div', { class: 'stack-arrow' + (c ? ' ' + c.kind : ''), 'aria-hidden': 'true', 'data-from': c && c.kind === 'ctl' ? c.from : null }, c ? (c.kind === 'ctl' ? 'notes' : 'sound') : '', c && c.kind === 'ctl' ? h('b', { class: 'sa-now' }) : null)); }
       w.append(nodeEl(tr, n));
     });
   } else for (const n of tr.nodes) w.append(nodeEl(tr, n));
@@ -3923,7 +3928,13 @@ function drawWires() {
     const hit = sv('path', { d, class: 'wire-hit' });
     const t = sv('title', {}); t.textContent = 'Click to unplug'; hit.append(t);
     hit.addEventListener('click', () => { snapshot(); tr.cables = tr.cables.filter(x => x !== c); buildTrack(tr); drawWires(); saveSoon(); toast('Cable unplugged', undoAction); });
-    s.append(hit, sv('path', { d, class: 'wire-shadow' }), sv('path', { d, class: `wire ${c.kind}` }));
+    const wp = sv('path', { d, class: `wire ${c.kind}` });
+    s.append(hit, sv('path', { d, class: 'wire-shadow' }), wp);
+    if (c.kind === 'ctl' && typeof cableText === 'function') { // a tag on the notes cable showing what's passing along it (filled in by look.js)
+      const lg = sv('g', { class: 'wire-lbl', 'data-from': c.from, 'data-k': '' }); lg.append(sv('rect', { rx: 6, ry: 6, height: 20, y: -10 }), sv('text', { 'text-anchor': 'middle', y: 5 }));
+      try { const L = wp.getTotalLength(), m = wp.getPointAtLength(L / 2); lg.setAttribute('transform', `translate(${m.x},${m.y})`); } catch (e) { }
+      s.append(lg);
+    }
   }
   // Movers: a dotted line to the knob they move
   for (const n of tr.nodes) {
@@ -11040,13 +11051,18 @@ function tlSoon() { clearTimeout(tlTimer); tlTimer = setTimeout(renderTimeline, 
    repeats, the reverb's tail, the filter's sweep…) with the live sound moving through it while the music plays.
    Cables glow when notes or sound are passing along them. One animation loop draws only what's on screen.
    ========================================================= */
-const LOOK = { an: new Map(), act: new Map(), raf: 0, last: 0 };
+const LOOK = { an: new Map(), act: new Map(), sent: new Map(), kr: new Map(), raf: 0, last: 0, upc: null, roman: false };
+try { LOOK.roman = localStorage.getItem('stompbox-studio-v1-roman') === '1'; } catch (e) { }
 const SCR_W = 168, SCR_H = 52;
 // which boxes get a screen
-const SCR_TYPES = new Set(['amp', 'reverb', 'delay', 'dist', 'chorus', 'filter', 'comp', 'lofi', 'drums', 'synth', 'inst', 'guitar', 'sampler', 'recorder', 'out', 'mic']);
+const SCR_TYPES = new Set(['amp', 'reverb', 'delay', 'dist', 'chorus', 'filter', 'comp', 'lofi', 'drums', 'synth', 'inst', 'guitar', 'sampler', 'recorder', 'out', 'mic', 'chords', 'bass', 'melody', 'pattern', 'groove']);
+const BRAIN_SCR = new Set(['chords', 'bass', 'melody', 'pattern', 'groove']);
 function scrEl(n) {
   if (!SCR_TYPES.has(n.type)) return null;
-  const c = h('canvas', { class: 'scr', 'data-scr': n.id, width: SCR_W * 2, height: SCR_H * 2, 'aria-hidden': 'true' });
+  const c = h('canvas', { class: 'scr' + (BRAIN_SCR.has(n.type) ? ' brain-scr' : '') + (n.type === 'chords' ? ' tap' : ''), 'data-scr': n.id, width: SCR_W * 2, height: SCR_H * 2, 'aria-hidden': 'true' });
+  if (n.type === 'chords') { c.title = 'The chord playing now, the next ones, and its notes. Click to switch between names (Am) and numbers (vi).'; c.addEventListener('click', () => { LOOK.roman = !LOOK.roman; try { localStorage.setItem('stompbox-studio-v1-roman', LOOK.roman ? '1' : '0'); } catch (e) { } LOOK.upc = null; }); }
+  if (n.type === 'bass') c.title = 'The bass note now, and which note of the chord it is.';
+  if (n.type === 'melody' || n.type === 'pattern') c.title = 'The notes this Brain is sending. Notes in the box colour belong to the chord playing right now.';
   lookStart(); return c;
 }
 // the live sound coming out of a box (waveform + level), from a small analyser made when first needed
@@ -11126,11 +11142,124 @@ function drawScr(c, tr, n) {
       if (p.duck > 0.01) { g.fillStyle = ac; g.fillRect(8, H - 8, (W - 16) * dip, 4); }
       label(p.duck > 0.01 ? 'LEVEL · DUCK' : 'LEVEL'); break;
     }
-    default: { // instruments and the mic: the live wave
-      if (tap && lvl > 0.002) wave(ac, 2); else { g.strokeStyle = '#ffffff25'; g.beginPath(); g.moveTo(0, H / 2); g.lineTo(W, H / 2); g.stroke(); }
+    case 'chords': case 'bass': case 'melody': case 'pattern': case 'groove': drawBrainScr(g, W, H, tr, n, ac); break;
+    default: { // instruments and the mic: the live wave (and, for an instrument fed by a Brain, a small keyboard lighting the notes coming in)
+      const fed = n.type !== 'mic' && tr.cables.some(cb => cb.to === n.id && cb.kind === 'ctl');
+      const midY = fed ? H * 0.32 : H / 2;
+      if (tap && lvl > 0.002) { g.save(); if (fed) { g.translate(0, -H * 0.18); g.scale(1, 0.62); } wave(ac, 2); g.restore(); } else { g.strokeStyle = '#ffffff25'; g.beginPath(); g.moveTo(0, midY); g.lineTo(W, midY); g.stroke(); }
+      if (fed) drawKeys(g, W, H, tr, n, lc(c, '--ctl'));
       label(n.type === 'mic' ? 'VOICE' : 'SOUND');
     }
   }
+}
+
+/* ---- seeing the notes: what each Brain sends, and where the song is ---- */
+// called (on the audio clock, via Tone.Draw) each time a Brain sends notes or drum hits
+function lookSent(key, evs) {
+  const now = performance.now(), sd = stepDur() * 1000;
+  let e = LOOK.sent.get(key); if (!e) { e = { held: [], hist: [], hits: {} }; LOOK.sent.set(key, e); }
+  e.held = e.held.filter(x => x.until > now);
+  for (const ev of evs) {
+    if (ev.drum) { const d = ev.drum === 'tomm' ? 'tomh' : ev.drum === 'ride' || ev.drum === 'rim' ? 'hat' : ev.drum; e.hits[d] = now; e.hist.push({ t: now, drum: ev.drum }); continue; }
+    for (const m of ev.midis || []) { e.held.push({ m, t: now, until: now + Math.max(0.6, ev.dur || 1) * sd }); e.hist.push({ t: now, m }); }
+  }
+  if (e.hist.length > 16) e.hist.splice(0, e.hist.length - 16);
+}
+const lookHeld = key => { const e = LOOK.sent.get(key), now = performance.now(); return e ? e.held.filter(x => x.until > now && x.t <= now) : []; };
+const noteNm = m => NOTE_NAMES[mod(m, 12)] + (Math.floor(m / 12) - 1);
+// where the music is: the bar you hear while playing, the playhead when stopped
+function lookPos() {
+  if (playing) { const hp = heardPos(); if (hp) return { bar: hp.bar, st: hp.st }; }
+  return { bar: SONG_POS.loop ? SONG_POS.loop.start : SONG_POS.from || 0, st: 0 };
+}
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
+// the chord at a bar as a Roman numeral (vi, IV, ♭VII…): upper case major, lower case minor, ° diminished
+function romanAt(bar, st) {
+  const c = chordAt(bar, st), sc = steps();
+  if (c.dia) { const d = mod(c.deg, 7), r = degSemis(d), third = degSemis(d + 2) - r, fifth = degSemis(d + 4) - r; const N = ROMAN[d]; return third === 4 ? N : fifth === 6 ? N.toLowerCase() + '°' : N.toLowerCase(); }
+  const rel = mod(c.rel, 12), q = (c.c && c.c.q) || ''; let i = sc.indexOf(rel), pre = '';
+  if (i < 0) { i = sc.findIndex(x => x > rel); if (i < 0) { i = 0; pre = '♯'; } else pre = '♭'; if (pre === '♯') i = sc.length - 1; }
+  const minor = /^m(?!aj)/.test(q), dim = /°|dim/.test(q), N = pre + ROMAN[i] ;
+  const rest = q.replace(/^m(?!aj)/, '').replace(/^dim|°/, '');
+  return (minor || dim ? N.toLowerCase() : N) + (dim ? '°' : '') + rest;
+}
+const chordLbl = (bar, st) => LOOK.roman ? romanAt(bar, st) : chordNameAt(bar, st);
+// the chord now and the next few changes (worked out once per chord change, not every frame)
+function upcoming(bar, st) {
+  const c = chordAt(bar, st), key = [bar, c.i, effProg(bar), S.root, S.scale, LOOK.roman, S.mode].join(':');
+  if (LOOK.upc && LOOK.upc.key === key) return LOOK.upc.list;
+  const list = [], lab = (b, s) => chordLbl(b, s); let last = chordNameAt(bar, st) + c.i;
+  for (let k = 1, b = bar, s = st; k < 128 && list.length < 3; k++) { s++; if (s > 15) { s = 0; b++; } const cc = chordAt(b, s), nm = chordNameAt(b, s) + cc.i; if (nm !== last) { list.push(lab(b, s)); last = nm; } }
+  LOOK.upc = { key, list }; return list;
+}
+// the chord's root and its note names, as this Chords box voices them
+function chordInfo(bar, st, p) {
+  const keep = curBar; curBar = bar;
+  try { const c = chordAt(bar, st), root = mod(S.root + liftAt(bar) + (c.dia ? degSemis(c.deg) : c.rel), 12); return { root, pcs: [...new Set(chordMidis(p || { octave: 3, flavor: 'Simple' }, bar, st).map(m => mod(m, 12)))] }; } finally { curBar = keep; }
+}
+const REL_NAMES = { 0: 'the root', 1: 'a passing note', 2: 'the 9th', 3: 'the 3rd', 4: 'the 3rd', 5: 'the 4th', 6: 'a passing note', 7: 'the 5th', 8: 'the 6th', 9: 'the 6th', 10: 'the 7th', 11: 'the 7th' };
+function drawPads(g, W, H, hit, ac) {
+  const pads = ['kick', 'snare', 'hat', 'open', 'clap', 'tomh', 'toml', 'crash'], now = performance.now(), F = getComputedStyle(document.body).fontFamily;
+  pads.forEach((d, i) => { const age = now - (hit[d] || -1e9), on = Math.max(0, 1 - age / 320), x = 6 + i * (W - 12) / pads.length, w = (W - 12) / pads.length - 6, hh = H - 30;
+    g.fillStyle = on ? ac : '#ffffff14'; g.globalAlpha = 0.25 + 0.75 * on; g.fillRect(x, 26, w, hh); g.globalAlpha = 1;
+    g.fillStyle = '#ffffffb0'; g.font = `700 17px ${F}`; g.fillText(d === 'kick' ? 'K' : d === 'snare' ? 'S' : d === 'hat' ? 'H' : d === 'open' ? 'O' : d === 'clap' ? 'C' : d === 'crash' ? 'X' : 'T', x + w / 2 - 5, H - 8); });
+}
+function drawBrainScr(g, W, H, tr, n, ac) {
+  const F = getComputedStyle(document.body).fontFamily, key = tr.id + ':' + n.id, pos = lookPos(), held = playing ? lookHeld(key) : [], e = LOOK.sent.get(key);
+  const txt = (t, x, y, size, col, wt = 700) => { g.font = `${wt} ${size}px ${F}`; g.fillStyle = col; g.fillText(t, x, y); return g.measureText(t).width; };
+  const small = t => txt(t, 10, 22, 17, '#ffffff80');
+  if (n.type === 'groove' || (n.type === 'pattern' && n.p.mode === 'Drums')) { drawPads(g, W, H, (playing && e && e.hits) || {}, ac); small('DRUM HITS'); return; }
+  if (n.type === 'chords') {
+    const big = chordLbl(pos.bar, pos.st), w = txt(big, 10, 88, big.length > 4 ? 38 : 54, '#fff'), x = Math.max(10 + w + 18, 100);
+    const next = upcoming(pos.bar, pos.st);
+    if (next.length) { const nw = txt('next', x, 40, 16, '#ffffff60', 600); txt(next.join('  '), x + nw + 8, 40, 20, '#ffffffa0', 700); }
+    const ci = chordInfo(pos.bar, pos.st, n.p), lit = new Set(held.map(h => mod(h.m, 12)));
+    let nx = x; if (LOOK.roman) nx += txt(chordNameAt(pos.bar, pos.st), nx, 72, 20, '#ffffffc0') + 12;
+    for (const pc of ci.pcs) nx += txt(NOTE_NAMES[pc], nx, 72, 22, lit.has(pc) ? ac : '#ffffff70') + 10;
+    const beat = Math.floor(pos.st / 4); for (let b = 0; b < 4; b++) { g.fillStyle = playing && b === beat ? ac : '#ffffff26'; g.beginPath(); g.arc(x + 5 + b * 16, 92, 4.5, 0, 7); g.fill(); }
+    small(LOOK.roman ? 'NUMBER' : 'CHORD'); return;
+  }
+  const ci = chordInfo(pos.bar, pos.st), cname = chordLbl(pos.bar, pos.st);
+  if (n.type === 'bass') {
+    const last = held.length ? held[held.length - 1] : null;
+    if (!last) { txt('–', 10, 74, 46, '#ffffff40'); txt('follows ' + cname, 70, 70, 20, '#ffffff70', 600); small('BASS NOTE'); return; }
+    const w = txt(noteNm(last.m), 10, 74, 46, '#fff'), rel = REL_NAMES[mod(last.m - ci.root, 12)];
+    txt(rel, 10 + w + 16, 50, 22, rel === 'a passing note' ? '#ffffffa0' : ac); txt('of ' + cname, 10 + w + 16, 80, 20, '#ffffff80', 600);
+    small('BASS NOTE'); return;
+  }
+  // melody / pattern notes: the last few notes scroll left; the newest is big; chord notes shine in the box colour
+  const now = performance.now(), hist = playing && e ? e.hist.filter(x => x.m !== undefined && x.t <= now && now - x.t < 4000).slice(-6) : [];
+  if (!hist.length) { txt('over ' + cname, 10, 72, 22, '#ffffff70', 600); small('NOTES'); return; }
+  const pcs = new Set(ci.pcs); let x = W - 10;
+  for (let i = hist.length - 1; i >= 0; i--) {
+    const h0 = hist[i], newest = i === hist.length - 1, nm = newest ? noteNm(h0.m) : NOTE_NAMES[mod(h0.m, 12)], size = newest ? 40 : 22;
+    g.font = `700 ${size}px ${F}`; const w = g.measureText(nm).width; x -= w; if (x < 8) break;
+    g.globalAlpha = newest ? 1 : Math.max(0.3, 1 - (hist.length - 1 - i) * 0.15); txt(nm, x, 76, size, pcs.has(mod(h0.m, 12)) ? ac : '#fff'); g.globalAlpha = 1; x -= 14;
+  }
+  small('NOTES · over ' + cname);
+}
+// a small keyboard along the bottom of an instrument's screen, lighting the notes arriving down the yellow cable
+function drawKeys(g, W, H, tr, n, col) {
+  const srcs = tr.cables.filter(cb => cb.to === n.id && cb.kind === 'ctl').map(cb => tr.id + ':' + cb.from);
+  const on = new Set(); if (playing) for (const k of srcs) for (const x of lookHeld(k)) on.add(x.m);
+  let r = LOOK.kr.get(tr.id + ':' + n.id) || { lo: 48, hi: 72 };
+  for (const m of on) { if (m < r.lo) r = { lo: m - mod(m, 12), hi: r.hi }; if (m >= r.hi) r = { lo: r.lo, hi: m - mod(m, 12) + 12 }; }
+  if (r.hi - r.lo > 48) r = { lo: r.hi - 48, hi: r.hi }; LOOK.kr.set(tr.id + ':' + n.id, r);
+  const top = H * 0.6, kh = H - top - 2, whites = []; for (let m = r.lo; m <= r.hi; m++) if (![1, 3, 6, 8, 10].includes(mod(m, 12))) whites.push(m);
+  const ww = W / whites.length;
+  whites.forEach((m, i) => { g.fillStyle = on.has(m) ? col : '#d9d6cf'; g.fillRect(i * ww + 0.5, top, ww - 1.5, kh); });
+  whites.forEach((m, i) => { const b = m + 1; if (b > r.hi || [1, 3, 6, 8, 10].indexOf(mod(b, 12)) < 0) return; g.fillStyle = on.has(b) ? col : '#1d1f24'; g.fillRect((i + 1) * ww - ww * 0.3, top, ww * 0.6, kh * 0.6); });
+}
+// what's passing along a notes cable right now, as a short label ("Am", "E2", "kick")
+function cableText(tr, fromId) {
+  const n = tr.nodes.find(x => x.id === fromId); if (!n || !BRAIN_SCR.has(n.type)) return '';
+  const pos = lookPos();
+  if (n.type === 'chords') return chordLbl(pos.bar, pos.st);
+  if (!playing) return '';
+  const e = LOOK.sent.get(tr.id + ':' + n.id); if (!e) return '';
+  const now = performance.now(), last = e.hist.filter(x => x.t <= now).pop(); if (!last || now - last.t > 700) return '';
+  if (last.drum !== undefined) return (DRUM_ROWS.find(d => d[0] === last.drum) || [0, last.drum])[1].toLowerCase();
+  return noteNm(last.m);
 }
 // called by the drum kit when it plays a hit, by brains when they send notes
 function lookHit(key, what) { const m = LOOK.act.get(key) || {}; m[what] = performance.now(); LOOK.act.set(key, m); }
@@ -11140,12 +11269,20 @@ function lookFrame(t) {
   if (document.hidden || S.view !== 'board') { setTimeout(lookStart, 250); return; }
   if (t - LOOK.last > 33) { // ~30 frames a second is plenty
     LOOK.last = t; const tr = curTrack();
-    if (tr) for (const c of document.querySelectorAll('canvas.scr')) { const n = tr.nodes.find(x => x.id === c.dataset.scr); if (n) try { drawScr(c, tr, n); } catch (e) { } }
+    if (tr) for (const c of document.querySelectorAll('canvas.scr')) { const n = tr.nodes.find(x => x.id === c.dataset.scr); if (!n) continue; const cw = Math.round(c.clientWidth * 2); if (cw > 40 && Math.abs(c.width - cw) > 4) c.width = cw; try { drawScr(c, tr, n); } catch (e) { } } // the canvas matches its width on screen, so text never stretches
     // cables glow while something passes along them
     if (tr) { const now = performance.now(), wires = document.querySelectorAll('#wires .wire'); let i = 0;
       for (const cb of tr.cables) { const w = wires[i++]; if (!w) continue; let on = false;
         if (playing) { if (cb.kind === 'ctl') on = now - ((LOOK.act.get(tr.id + ':' + cb.from) || {}).notes || -1e9) < 140; else { const a = lookTap(tr.id, cb.from); if (a) { a.an.getFloatTimeDomainData(a.buf); let e = 0; for (let k = 0; k < a.buf.length; k += 8) e += a.buf[k] * a.buf[k]; on = e > 0.0005; } } }
         w.classList.toggle('live', on); } }
+    // the tags on the notes cables (and the arrows of the stacked phone board): the chord or note passing now
+    if (tr) for (const el of document.querySelectorAll('#wires .wire-lbl, .stack-arrow[data-from]')) {
+      const t = cableText(tr, el.dataset.from) || '';
+      if (el.dataset.k === t) continue; el.dataset.k = t;
+      if (el.tagName === 'DIV') { const b = el.querySelector('.sa-now'); if (b) b.textContent = t ? ' · ' + t : ''; continue; }
+      const tx = el.querySelector('text'), rc = el.querySelector('rect'); tx.textContent = t; el.classList.toggle('empty', !t);
+      if (t) { const w = Math.max(24, tx.getComputedTextLength() + 14); rc.setAttribute('width', w); rc.setAttribute('x', -w / 2); }
+    }
   }
   lookStart();
 }
