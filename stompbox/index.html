@@ -84,6 +84,9 @@ select.field{padding-right:4px}
 .chips{display:flex;gap:4px}
 .chip{font-family:var(--f-mono);font-size:12px;padding:4px 7px;border-radius:6px;background:var(--panel-2);border:1px solid var(--line);color:var(--ink-dim);min-width:38px;text-align:center}
 .chip.now{background:var(--ctl);color:var(--ink-on);border-color:var(--ctl)}
+/* chord moods: warm major, cool minor, purple diminished, teal open */
+.chip.m-maj{box-shadow:inset 0 -3px 0 #f2b544}.chip.m-min{box-shadow:inset 0 -3px 0 #6fa3f0}.chip.m-dim{box-shadow:inset 0 -3px 0 #b58ae8}.chip.m-sus{box-shadow:inset 0 -3px 0 #5fc4b0}
+.chip.now.m-maj{background:#f2b544;border-color:#f2b544}.chip.now.m-min{background:#6fa3f0;border-color:#6fa3f0}.chip.now.m-dim{background:#b58ae8;border-color:#b58ae8}.chip.now.m-sus{background:#5fc4b0;border-color:#5fc4b0}
 .spacer{flex:1}
 .btn{border:1px solid var(--line);background:var(--panel-2);border-radius:8px;padding:7px 12px;font-weight:600;font-size:13px}
 .btn:hover{border-color:var(--ink-faint)}
@@ -208,6 +211,21 @@ svg.wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;poin
 .wire-lbl text{fill:var(--ctl);font:700 12px var(--f-mono,monospace)}
 .wire-lbl.empty,.wire-lbl[data-k=""]{display:none}
 .node .scr.tap{cursor:pointer}
+/* the board wears its track's colour: a stripe on every box and a soft glow round the board */
+.node header{box-shadow:inset 0 3px 0 var(--trk,transparent)}
+#vp{box-shadow:inset 0 3px 0 var(--trk,transparent)}
+/* timeline: chord moods under the bars */
+.tl-moods{display:grid;gap:2px;height:6px;margin-top:3px}.tl-moods i{border-radius:2px;opacity:.85}
+.tl-moodkey{display:inline-flex;gap:10px;font-size:11px;color:var(--ink-dim);margin-left:auto;margin-right:12px}
+.tl-moodkey span{display:inline-flex;align-items:center;gap:4px}.tl-moodkey i{width:9px;height:9px;border-radius:2px}
+/* Beat clock */
+.bc-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0}
+.bc-pair figure{margin:0;text-align:center}.bc-pair figcaption{margin-top:6px;font-size:14px}
+.bc-canvas{width:100%;max-width:280px;aspect-ratio:1;background:#111318;border-radius:50%;box-shadow:inset 0 2px 8px #000c}
+.bc-legend{display:flex;flex-wrap:wrap;gap:12px;align-items:center;font-size:12px}.bc-legend span{display:inline-flex;align-items:center;gap:5px}.bc-legend i{width:10px;height:10px;border-radius:50%}
+.bc-why{min-height:2.6em}
+.bc-chips{flex-wrap:wrap}
+@media (max-width:520px){.bc-pair{grid-template-columns:1fr 1fr;gap:8px}}
 .stack-arrow .sa-now{color:var(--ctl);font-weight:700;letter-spacing:.04em;text-transform:none;margin-left:2px}
 
 /* ---------- nodes (pedal enclosures) ---------- */
@@ -705,7 +723,7 @@ body.perform .app{grid-template-rows:1fr}
 .pk.out:not(.blk){background:linear-gradient(#bdb7aa,#a49e92)}
 .pk.blk.out{background:#3a3d44;opacity:.75}
 .pk.root:not(.blk){box-shadow:inset 0 -4px 0 var(--amber)}
-.pk.down{background:var(--amber)!important;color:var(--ink-on)}
+.pk.down{background:var(--trk,var(--amber))!important;color:var(--ink-on)}
 .keys-help{margin:0;font-size:12px;color:var(--ink-dim)}
 @media (max-width: 760px){ .keys-on .board-tools{bottom:236px} }
 
@@ -3211,7 +3229,7 @@ function renderChips(prog, lift, win = 0) {
   const names = progNames(prog, lift);
   if (win > 0) box.append(h('span', { class: 'chip more' }, '…'));
   const info = progInfo(prog, lift);
-  names.slice(win, win + CHIP_MAX).forEach((nm, j) => { const c = info[win + j], r = c ? chordRole(c.rel, c.q) : null; box.append(h('span', { class: 'chip' + (r && !r.inKey ? ' borrowed' : ''), 'data-i': win + j, title: r ? `${nm} · ${r.numeral}: ${r.feel}` : nm }, nm, r ? h('small', { class: 'rn' }, r.numeral) : null)); });
+  names.slice(win, win + CHIP_MAX).forEach((nm, j) => { const c = info[win + j], r = c ? chordRole(c.rel, c.q) : null, md = c && typeof qMood === 'function' ? qMood(c.q) : 'maj'; box.append(h('span', { class: 'chip m-' + md + (r && !r.inKey ? ' borrowed' : ''), 'data-i': win + j, title: (r ? `${nm} · ${r.numeral}: ${r.feel}` : nm) + (typeof MOODS !== 'undefined' ? ` · ${MOODS[md].word} (${MOODS[md].feel})` : '') }, nm, r ? h('small', { class: 'rn' }, r.numeral) : null)); });
   if (names.length > win + CHIP_MAX) box.append(h('span', { class: 'chip more' }, '…'));
   box.classList.toggle('section', prog !== S.prog || !!lift);
   box.title = prog !== S.prog || lift ? 'This section has its own chords' + (lift ? ` (key lifted ${lift > 0 ? '+' : ''}${lift})` : '') : 'The song’s chords';
@@ -3702,6 +3720,7 @@ function renderBoard() {
   const tr = curTrack(), w = world(), st = stackMode();
   $$('.node,.empty,.stack-arrow', w).forEach(e => e.remove());
   w.classList.toggle('stack', st); document.body.classList.toggle('board-stack', st);
+  vp().style.setProperty('--trk', tr.color); // the board wears its track's colour (box stripes, the frame)
   const sb = $('#stackBtn'); if (sb) { sb.textContent = st ? 'Free board' : 'Stack boxes'; sb.title = st ? 'Lay the boxes out freely with cables (pinch to zoom)' : 'Stack the boxes top to bottom in the order the sound flows'; }
   if (st) {
     const d = flowDepth(tr), order = tr.nodes.slice().sort((a, b) => d[a.id] - d[b.id] || a.y - b.y || a.x - b.x);
@@ -6128,6 +6147,7 @@ function toggleKeys(on = !KEYS.on) {
 function renderKeys() {
   const box = $('#keysPanel'); if (!box || !KEYS.on) return; box.innerHTML = '';
   const tr = curTrack(), srcs = keySources(tr), drums = isDrumTrack(tr);
+  box.style.setProperty('--trk', tr.color || 'var(--amber)'); // keys light in the track's colour
   const lo = 12 * (KEYS.oct + 1), keys = h('div', { class: 'piano', role: 'group', 'aria-label': 'Piano keys' });
   for (let i = 0; i <= 24; i++) {
     const m = lo + i, black = [1, 3, 6, 8, 10].includes(mod(i, 12));
@@ -11274,7 +11294,13 @@ function renderTimeline() {
   // the sections on their own row above the bars, readable, each one clickable (plays from its first bar)
   const secRow = secs.length ? h('div', { class: 'tl-secs', style: `grid-template-columns:repeat(${nb},1fr)` },
     secs.map((x, i) => h('button', { class: 'tl-secname' + (i % 2 ? ' alt' : ''), style: `grid-column:${x.start + 1} / span ${x.len}`, title: `${x.name}: bars ${x.start + 1}–${x.start + x.len}. Click to play from here, double-click to loop it.`, onclick: () => tlGo(x.start), ondblclick: () => { SONG_POS.loop = { start: x.start, len: x.len }; tlGo(x.start); } }, x.name))) : null;
-  el.append(head, secRow, strip);
+  // the chords' moods under the bars: warm = major, cool = minor, purple = diminished (see the mood before you can name it)
+  const moodRow = typeof moodAt === 'function' ? h('div', { class: 'tl-moods', style: `grid-template-columns:repeat(${nb},1fr)`, 'aria-hidden': 'true' },
+    Array.from({ length: nb }, (_, b) => { const m0 = moodAt(b, 0), m1 = moodAt(b, 8); const c0 = MOODS[m0].col, c1 = MOODS[m1].col;
+      return h('i', { style: `background:${c0 === c1 ? c0 : `linear-gradient(90deg,${c0} 50%,${c1} 50%)`}`, title: `Bar ${b + 1}: ${chordNameAt(b, 0)} (${MOODS[m0].word})` }); })) : null;
+  const moodKey = moodRow ? h('span', { class: 'tl-moodkey', title: 'The colour under each bar is the mood of its chord' }, ['maj', 'min', 'dim'].map(k => h('span', {}, h('i', { style: `background:${MOODS[k].col}` }), MOODS[k].word))) : null;
+  if (moodKey) head.insertBefore(moodKey, head.querySelector('.tl-hint'));
+  el.append(head, secRow, strip, moodRow);
   const bw = strip.getBoundingClientRect().width / Math.max(1, nb); if (bw && Math.abs(bw - (TL.barW || 0)) > 2) { TL.barW = bw; renderTimeline(); return; } // labels only where they fit
   tlPlayhead(heardPos() ? heardPos().bar * 16 + heardPos().st : SONG_POS.from * 16);
 }
@@ -11311,6 +11337,7 @@ function scrEl(n) {
   if (!SCR_TYPES.has(n.type)) return null;
   const c = h('canvas', { class: 'scr' + (BRAIN_SCR.has(n.type) ? ' brain-scr' : '') + (n.type === 'chords' ? ' tap' : ''), 'data-scr': n.id, width: SCR_W * 2, height: SCR_H * 2, 'aria-hidden': 'true' });
   if (n.type === 'chords') { c.title = 'The chord playing now, the next ones, and its notes. Click to switch between names (Am) and numbers (vi).'; c.addEventListener('click', () => { LOOK.roman = !LOOK.roman; try { localStorage.setItem('stompbox-studio-v1-roman', LOOK.roman ? '1' : '0'); } catch (e) { } LOOK.upc = null; }); }
+  if (n.type === 'groove') { c.classList.add('tap'); c.title = 'The beat clock: one bar goes round like a clock; each ring is a drum. Click for the big clock and to compare beats.'; c.addEventListener('click', () => { const tr = curTrack(); if (tr) openBeatClock(tr, n); }); }
   if (n.type === 'bass') c.title = 'The bass note now, and which note of the chord it is.';
   if (n.type === 'melody' || n.type === 'pattern') c.title = 'The notes this Brain is sending. Notes in the box colour belong to the chord playing right now.';
   lookStart(); return c;
@@ -11392,12 +11419,12 @@ function drawScr(c, tr, n) {
       if (p.duck > 0.01) { g.fillStyle = ac; g.fillRect(8, H - 8, (W - 16) * dip, 4); }
       label(p.duck > 0.01 ? 'LEVEL · DUCK' : 'LEVEL'); break;
     }
-    case 'chords': case 'bass': case 'melody': case 'pattern': case 'groove': drawBrainScr(g, W, H, tr, n, ac); break;
+    case 'chords': case 'bass': case 'melody': case 'pattern': case 'groove': drawBrainScr(g, W, H, tr, n, tr.color || ac); break;
     default: { // instruments and the mic: the live wave (and, for an instrument fed by a Brain, a small keyboard lighting the notes coming in)
       const fed = n.type !== 'mic' && tr.cables.some(cb => cb.to === n.id && cb.kind === 'ctl');
       const midY = fed ? H * 0.32 : H / 2;
       if (tap && lvl > 0.002) { g.save(); if (fed) { g.translate(0, -H * 0.18); g.scale(1, 0.62); } wave(ac, 2); g.restore(); } else { g.strokeStyle = '#ffffff25'; g.beginPath(); g.moveTo(0, midY); g.lineTo(W, midY); g.stroke(); }
-      if (fed) drawKeys(g, W, H, tr, n, lc(c, '--ctl'));
+      if (fed) drawKeys(g, W, H, tr, n, tr.color || lc(c, '--ctl')); // lit in the track's own colour
       label(n.type === 'mic' ? 'VOICE' : 'SOUND');
     }
   }
@@ -11438,7 +11465,7 @@ const chordLbl = (bar, st) => LOOK.roman ? romanAt(bar, st) : chordNameAt(bar, s
 function upcoming(bar, st) {
   const c = chordAt(bar, st), key = [bar, c.i, effProg(bar), S.root, S.scale, LOOK.roman, S.mode].join(':');
   if (LOOK.upc && LOOK.upc.key === key) return LOOK.upc.list;
-  const list = [], lab = (b, s) => chordLbl(b, s); let last = chordNameAt(bar, st) + c.i;
+  const list = [], lab = (b, s) => ({ t: chordLbl(b, s), m: moodAt(b, s) }); let last = chordNameAt(bar, st) + c.i;
   for (let k = 1, b = bar, s = st; k < 128 && list.length < 3; k++) { s++; if (s > 15) { s = 0; b++; } const cc = chordAt(b, s), nm = chordNameAt(b, s) + cc.i; if (nm !== last) { list.push(lab(b, s)); last = nm; } }
   LOOK.upc = { key, list }; return list;
 }
@@ -11458,16 +11485,19 @@ function drawBrainScr(g, W, H, tr, n, ac) {
   const F = getComputedStyle(document.body).fontFamily, key = tr.id + ':' + n.id, pos = lookPos(), held = playing ? lookHeld(key) : [], e = LOOK.sent.get(key);
   const txt = (t, x, y, size, col, wt = 700) => { g.font = `${wt} ${size}px ${F}`; g.fillStyle = col; g.fillText(t, x, y); return g.measureText(t).width; };
   const small = t => txt(t, 10, 22, 17, '#ffffff80');
-  if (n.type === 'groove' || (n.type === 'pattern' && n.p.mode === 'Drums')) { drawPads(g, W, H, (playing && e && e.hits) || {}, ac); small('DRUM HITS'); return; }
+  if (n.type === 'groove' || (n.type === 'pattern' && n.p.mode === 'Drums')) {
+    if (n.type === 'groove') { drawClock(g, H / 2 + 2, H / 2, H / 2 - 6, grooveMap(n.p), playing ? pos.st + ((heardPos() || {}).frac || 0) : -1, ac, (playing && e && e.hits) || {}); g.save(); g.translate(H + 4, 0); drawPads(g, W - H - 4, H, (playing && e && e.hits) || {}, ac); g.restore(); txt('DRUM HITS', H + 14, 22, 17, '#ffffff80'); return; }
+    drawPads(g, W, H, (playing && e && e.hits) || {}, ac); small('DRUM HITS'); return;
+  }
   if (n.type === 'chords') {
-    const big = chordLbl(pos.bar, pos.st), w = txt(big, 10, 88, big.length > 4 ? 38 : 54, '#fff'), x = Math.max(10 + w + 18, 100);
+    const big = chordLbl(pos.bar, pos.st), mood = moodAt(pos.bar, pos.st), w = txt(big, 10, 88, big.length > 4 ? 38 : 54, MOODS[mood].col), x = Math.max(10 + w + 18, 100);
     const next = upcoming(pos.bar, pos.st);
-    if (next.length) { const nw = txt('next', x, 40, 16, '#ffffff60', 600); txt(next.join('  '), x + nw + 8, 40, 20, '#ffffffa0', 700); }
+    if (next.length) { let nx2 = x + txt('next', x, 40, 16, '#ffffff60', 600) + 8; for (const u of next) nx2 += txt(u.t, nx2, 40, 20, MOODS[u.m].col + 'cc', 700) + 10; }
     const ci = chordInfo(pos.bar, pos.st, n.p), lit = new Set(held.map(h => mod(h.m, 12)));
     let nx = x; if (LOOK.roman) nx += txt(chordNameAt(pos.bar, pos.st), nx, 72, 20, '#ffffffc0') + 12;
     for (const pc of ci.pcs) nx += txt(NOTE_NAMES[pc], nx, 72, 22, lit.has(pc) ? ac : '#ffffff70') + 10;
     const beat = Math.floor(pos.st / 4); for (let b = 0; b < 4; b++) { g.fillStyle = playing && b === beat ? ac : '#ffffff26'; g.beginPath(); g.arc(x + 5 + b * 16, 92, 4.5, 0, 7); g.fill(); }
-    small(LOOK.roman ? 'NUMBER' : 'CHORD'); return;
+    small((LOOK.roman ? 'NUMBER' : 'CHORD') + ' · ' + MOODS[mood].word.toUpperCase()); return;
   }
   const ci = chordInfo(pos.bar, pos.st), cname = chordLbl(pos.bar, pos.st);
   if (n.type === 'bass') {
@@ -11477,16 +11507,18 @@ function drawBrainScr(g, W, H, tr, n, ac) {
     txt(rel, 10 + w + 16, 50, 22, rel === 'a passing note' ? '#ffffffa0' : ac); txt('of ' + cname, 10 + w + 16, 80, 20, '#ffffff80', 600);
     small('BASS NOTE'); return;
   }
-  // melody / pattern notes: the last few notes scroll left; the newest is big; chord notes shine in the box colour
-  const now = performance.now(), hist = playing && e ? e.hist.filter(x => x.m !== undefined && x.t <= now && now - x.t < 4000).slice(-6) : [];
-  if (!hist.length) { txt('over ' + cname, 10, 72, 22, '#ffffff70', 600); small('NOTES'); return; }
-  const pcs = new Set(ci.pcs); let x = W - 10;
-  for (let i = hist.length - 1; i >= 0; i--) {
-    const h0 = hist[i], newest = i === hist.length - 1, nm = newest ? noteNm(h0.m) : NOTE_NAMES[mod(h0.m, 12)], size = newest ? 40 : 22;
-    g.font = `700 ${size}px ${F}`; const w = g.measureText(nm).width; x -= w; if (x < 8) break;
-    g.globalAlpha = newest ? 1 : Math.max(0.3, 1 - (hist.length - 1 - i) * 0.15); txt(nm, x, 76, size, pcs.has(mod(h0.m, 12)) ? ac : '#fff'); g.globalAlpha = 1; x -= 14;
-  }
-  small('NOTES · over ' + cname);
+  // melody / pattern notes: the tune as a line that rises and falls with the pitch over the last few seconds.
+  // Notes that belong to the chord are solid dots in the track colour; passing notes are hollow. The newest note is named.
+  const now = performance.now(), SPAN = 4000, hist = playing && e ? e.hist.filter(x => x.m !== undefined && x.t <= now && now - x.t < SPAN) : [];
+  if (!hist.length) { txt('over ' + cname, 10, 72, 22, '#ffffff70', 600); small('TUNE'); return; }
+  const pcs = new Set(ci.pcs), last = hist[hist.length - 1];
+  let lo = Math.min(...hist.map(x => x.m)), hi = Math.max(...hist.map(x => x.m)); if (hi - lo < 12) { const c0 = (lo + hi) / 2; lo = c0 - 6; hi = c0 + 6; }
+  const nmW = 92, X = t => 8 + (W - nmW - 16) * (1 - (now - t) / SPAN), Y = m => H - 12 - (H - 40) * (m - lo) / (hi - lo);
+  g.strokeStyle = ac + '90'; g.lineWidth = 3; g.lineJoin = 'round'; g.beginPath(); hist.forEach((x, i) => i ? g.lineTo(X(x.t), Y(x.m)) : g.moveTo(X(x.t), Y(x.m))); g.lineTo(W - nmW - 8, Y(last.m)); g.stroke();
+  for (const x of hist) { const fit = pcs.has(mod(x.m, 12)); g.beginPath(); g.arc(X(x.t), Y(x.m), 5.5, 0, 7); if (fit) { g.fillStyle = ac; g.fill(); } else { g.fillStyle = '#111318'; g.fill(); g.strokeStyle = '#ffffffb0'; g.lineWidth = 2; g.stroke(); } }
+  txt(noteNm(last.m), W - nmW + 2, 64, 34, pcs.has(mod(last.m, 12)) ? ac : '#fff');
+  txt(pcs.has(mod(last.m, 12)) ? 'in the chord' : 'passing', W - nmW + 2, 88, 15, '#ffffff90', 600);
+  small('TUNE · over ' + cname);
 }
 // a small keyboard along the bottom of an instrument's screen, lighting the notes arriving down the yellow cable
 function drawKeys(g, W, H, tr, n, col) {
@@ -11500,11 +11532,59 @@ function drawKeys(g, W, H, tr, n, col) {
   whites.forEach((m, i) => { g.fillStyle = on.has(m) ? col : '#d9d6cf'; g.fillRect(i * ww + 0.5, top, ww - 1.5, kh); });
   whites.forEach((m, i) => { const b = m + 1; if (b > r.hi || [1, 3, 6, 8, 10].indexOf(mod(b, 12)) < 0) return; g.fillStyle = on.has(b) ? col : '#1d1f24'; g.fillRect((i + 1) * ww - ww * 0.3, top, ww * 0.6, kh * 0.6); });
 }
+/* ---- chord moods: major warm, minor cool, diminished purple, sus/power teal ---- */
+const MOODS = { maj: { col: '#f2b544', word: 'major', feel: 'bright, happy' }, min: { col: '#6fa3f0', word: 'minor', feel: 'darker, sadder' }, dim: { col: '#b58ae8', word: 'diminished', feel: 'tense, wants to move' }, sus: { col: '#5fc4b0', word: 'open', feel: 'open, neither happy nor sad' } };
+function qMood(q) { q = q || ''; return isDimQ(q) ? 'dim' : isMinorQ(q) ? 'min' : /sus|^5$|^\(no3\)/.test(q) ? 'sus' : 'maj'; }
+function moodAt(bar, st = 0) {
+  const c = chordAt(bar, st);
+  if (!c.dia) return qMood(c.c && c.c.q);
+  const r = degSemis(c.deg), third = degSemis(c.deg + 2) - r, fifth = degSemis(c.deg + 4) - r;
+  return third === 4 ? 'maj' : fifth === 6 ? 'dim' : 'min';
+}
+/* ---- the beat clock: 16 steps round a circle, one ring per drum ---- */
+const CLOCK_RINGS = [['kick', 'Kick', '#ef6f5c'], ['snare', 'Snare / clap', '#f2b544'], ['hat', 'Hi-hat', '#5fc4e0'], ['open', 'Open hat / ride', '#a47fd8']];
+const ringOf = d => d === 'kick' ? 0 : d === 'snare' || d === 'clap' || d === 'rim' ? 1 : d === 'open' || d === 'ride' || d === 'crash' ? 3 : d === 'hat' ? 2 : -1;
+function grooveMap(p) { // which drums hit on each of the 16 steps (bar 0, no fills), with how hard
+  const map = Array.from({ length: 16 }, () => [0, 0, 0, 0]), keepR = Math.random; Math.random = () => 0.99;
+  try { for (let st = 0; st < 16; st++) for (const ev of genGroove(Object.assign({}, p, { fills: 0, human: 0 }), st, 0)) { const r = ringOf(ev.drum); if (r >= 0) map[st][r] = Math.max(map[st][r], ev.vel || 0.8); } } catch (e) { } finally { Math.random = keepR; }
+  return map;
+}
+function drawClock(g, cx, cy, R, map, at, ac, hits = {}) {
+  const now = performance.now();
+  g.strokeStyle = '#ffffff1c'; g.lineWidth = 1;
+  for (let k = 0; k < 4; k++) { g.beginPath(); g.arc(cx, cy, R * (0.4 + 0.2 * k), 0, 7); g.stroke(); }
+  for (let st = 0; st < 16; st += 4) { const a = st / 16 * Math.PI * 2 - Math.PI / 2; g.beginPath(); g.moveTo(cx + Math.cos(a) * R * 0.3, cy + Math.sin(a) * R * 0.3); g.lineTo(cx + Math.cos(a) * R * 1.02, cy + Math.sin(a) * R * 1.02); g.strokeStyle = '#ffffff30'; g.stroke(); }
+  for (let st = 0; st < 16; st++) for (let k = 0; k < 4; k++) {
+    const v = map[st][k]; if (!v) continue; const a = st / 16 * Math.PI * 2 - Math.PI / 2, rr = R * (1 - 0.2 * k), lit = at >= 0 && Math.floor(at) === st;
+    g.beginPath(); g.arc(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, Math.max(1.5, R * (0.05 + 0.05 * v) * (lit ? 1.5 : 1)), 0, 7); g.fillStyle = CLOCK_RINGS[k][2]; g.globalAlpha = lit ? 1 : 0.35 + 0.5 * v; g.fill(); g.globalAlpha = 1;
+  }
+  if (at >= 0) { const a = at / 16 * Math.PI * 2 - Math.PI / 2; g.strokeStyle = ac; g.lineWidth = Math.max(2, R * 0.05); g.lineCap = 'round'; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R); g.stroke(); }
+  g.fillStyle = ac; g.beginPath(); g.arc(cx, cy, Math.max(2, R * 0.07), 0, 7); g.fill();
+}
+// the big Beat clock: this box's beat beside any other, so you can see why they feel different
+function openBeatClock(tr, n) {
+  let other = Object.keys(GROOVES).find(k => k !== n.p.style && k !== 'Boom bap') || 'Rock'; if (n.p.style !== 'Boom bap') other = 'Boom bap';
+  const mk = () => h('canvas', { class: 'bc-canvas', width: 560, height: 560, 'aria-hidden': 'true' });
+  const cA = mk(), cB = mk(), nameA = h('b', {}), nameB = h('b', {}), blurb = h('p', { class: 'lhn bc-why', 'aria-live': 'polite' });
+  const chips = h('div', { class: 'sp-chips bc-chips', role: 'group', 'aria-label': 'Compare with' });
+  const WHY = { 'Boom bap': 'kick on 1, then just before and just after 3; snare on 2 and 4: a head-nod', 'Four on the floor': 'a kick on every beat, round the clock like a march: made to dance to', 'Trap': 'kick spread out, one big clap on 3, fast hats', 'Rock': 'kick on 1 and 3 (with a push just after 3), snare on 2 and 4: the backbeat', 'Lo-fi': 'boom bap, laid back and lazy', 'Reggaeton': 'the dembow: a kick on every beat and a snare that skips (3 + 3 + 2)', 'Half-time': 'the snare only once, on 3: everything feels twice as slow', 'Jazz ride': 'time kept on the ride cymbal, hi-hat on 2 and 4, kick and snare just comment', 'Breakbeat': 'kick on 1 and the "and" of 3, ghost snares in between: it rolls forward' };
+  const draw = () => { nameA.textContent = 'This box: ' + n.p.style; nameB.textContent = 'Compare: ' + other; blurb.textContent = `${n.p.style}: ${WHY[n.p.style] || ''}. ${other}: ${WHY[other] || ''}.`;
+    chips.innerHTML = ''; for (const k of Object.keys(GROOVES)) chips.append(h('button', { class: 'chipbtn', 'aria-pressed': k === other, onclick: () => { other = k; draw(); } }, k)); };
+  const legend = h('div', { class: 'bc-legend' }, CLOCK_RINGS.map(([, nm, col]) => h('span', {}, h('i', { style: `background:${col}` }), nm)), h('span', { class: 'lhn' }, 'Outside ring = kick. Top = beat 1; it goes round once a bar.'));
+  let raf = 0; const loop = () => { raf = requestAnimationFrame(loop); const at = playing ? (heardPos() ? heardPos().st + heardPos().frac : -1) : -1, ac = tr.color || '#f2b544';
+    for (const [c, p] of [[cA, n.p], [cB, Object.assign({}, n.p, { style: other })]]) { const g = c.getContext('2d'); g.clearRect(0, 0, 560, 560); drawClock(g, 280, 280, 250, grooveMap(p), at, ac); } };
+  draw(); loop();
+  askDialog('Beat clock', h('div', { class: 'bc' }, h('p', { class: 'lhn' }, 'One bar of the beat, drawn round a clock. Each ring is a drum; bigger dots are harder hits. Press play to watch the hand go round.'),
+    h('div', { class: 'bc-pair' }, h('figure', {}, cA, h('figcaption', {}, nameA)), h('figure', {}, cB, h('figcaption', {}, nameB))), legend, blurb, h('h3', { class: 'sp-group' }, 'Compare with'), chips),
+    close => h('div', { class: 'tour-btns' }, h('button', { class: 'btn', onclick: () => { snapshot(); n.p.style = other; buildTrack(tr); renderBoard(); saveSoon(); toast(`This box now plays ${other}.`, undoAction); cancelAnimationFrame(raf); close(); } }, 'Use the other beat'), h('span', { class: 'spacer' }), h('button', { class: 'btn primary', onclick: () => { cancelAnimationFrame(raf); close(); } }, 'Done')));
+  const bgEl = [...document.querySelectorAll('.modal-bg')].pop(); if (bgEl) new MutationObserver((m, o) => { if (!bgEl.isConnected) { cancelAnimationFrame(raf); o.disconnect(); } }).observe(document.body, { childList: true });
+}
 // what's passing along a notes cable right now, as a short label ("Am", "E2", "kick")
 function cableText(tr, fromId) {
   const n = tr.nodes.find(x => x.id === fromId); if (!n || !BRAIN_SCR.has(n.type)) return '';
   const pos = lookPos();
-  if (n.type === 'chords') return chordLbl(pos.bar, pos.st);
+  if (n.type === 'chords') { LOOK.tagMood = moodAt(pos.bar, pos.st); return chordLbl(pos.bar, pos.st); }
+  LOOK.tagMood = null;
   if (!playing) return '';
   const e = LOOK.sent.get(tr.id + ':' + n.id); if (!e) return '';
   const now = performance.now(), last = e.hist.filter(x => x.t <= now).pop(); if (!last || now - last.t > 700) return '';
@@ -11529,8 +11609,8 @@ function lookFrame(t) {
     if (tr) for (const el of document.querySelectorAll('#wires .wire-lbl, .stack-arrow[data-from]')) {
       const t = cableText(tr, el.dataset.from) || '';
       if (el.dataset.k === t) continue; el.dataset.k = t;
-      if (el.tagName === 'DIV') { const b = el.querySelector('.sa-now'); if (b) b.textContent = t ? ' · ' + t : ''; continue; }
-      const tx = el.querySelector('text'), rc = el.querySelector('rect'); tx.textContent = t; el.classList.toggle('empty', !t);
+      if (el.tagName === 'DIV') { const b = el.querySelector('.sa-now'); if (b) { b.textContent = t ? ' · ' + t : ''; b.style.color = LOOK.tagMood ? MOODS[LOOK.tagMood].col : ''; } continue; }
+      const tx = el.querySelector('text'), rc = el.querySelector('rect'); tx.textContent = t; el.classList.toggle('empty', !t); tx.style.fill = LOOK.tagMood ? MOODS[LOOK.tagMood].col : '';
       if (t) { const w = Math.max(24, tx.getComputedTextLength() + 14); rc.setAttribute('width', w); rc.setAttribute('x', -w / 2); }
     }
   }
