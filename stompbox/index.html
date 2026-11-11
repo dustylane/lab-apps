@@ -36,6 +36,27 @@ button{cursor:pointer}
 .tabs button{border:0;background:none;padding:7px 12px;border-radius:7px;color:var(--ink-dim);font-weight:700;font-size:14px}
 .tabs button:hover{color:var(--ink)}
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--ink-on)}
+/* the pages inside a room (Make: Board · Song · Lyrics; Play: Live · Set · Decks) */
+.subtabs{display:inline-flex;align-items:center;gap:2px;margin-left:-4px}
+.subtabs[hidden],.subtabs button[hidden]{display:none}
+.subtabs::before{content:"";width:0;height:0;border:5px solid transparent;border-left:6px solid var(--ink-faint);margin-right:4px}
+.subtabs button{border:0;background:none;padding:6px 9px;border-radius:7px;color:var(--ink-dim);font-weight:700;font-size:13px;position:relative}
+.subtabs button:hover{color:var(--ink)}
+.subtabs button[aria-pressed="true"]{color:var(--ink);background:var(--panel-2)}
+.subtabs button[aria-pressed="true"]::after{content:"";position:absolute;left:9px;right:9px;bottom:2px;height:2px;border-radius:2px;background:var(--amber)}
+/* the Saved badge */
+.savestate{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink-dim);font:700 12px/1 inherit;white-space:nowrap;cursor:pointer}
+.savestate[hidden]{display:none}
+.savestate i{width:8px;height:8px;border-radius:50%;background:var(--ink-faint);flex:none}
+.savestate b{color:var(--ink);border-left:1px solid var(--line);padding-left:8px;margin-left:2px}
+.savestate:hover{border-color:var(--ink-faint);color:var(--ink)}
+.savestate.ok{color:var(--c-delay)}.savestate.ok i{background:var(--c-delay)}
+.savestate.ok i,.savestate.busy i{box-shadow:0 0 0 3px #ffffff0a}
+.savestate.busy i{background:var(--amber);animation:sspulse 1s ease-in-out infinite}
+.savestate.no.changed{color:var(--amber);border-color:#f2a54155}.savestate.no.changed i{background:var(--amber)}
+.savestate.err{color:#fff;background:#b8382c;border-color:#e0574a}.savestate.err i{background:#fff}
+@keyframes sspulse{50%{opacity:.35}}
+@media (prefers-reduced-motion: reduce){.savestate.busy i{animation:none}}
 .modechip{border:1px solid var(--line);background:none;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-dim)}
 .playing .modechip{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 50%,var(--line))}
 .btn.icon{width:34px;height:34px;padding:0;font-size:17px;display:grid;place-items:center}
@@ -112,7 +133,7 @@ select.field{padding-right:4px}
 .bin-more{border:1px dashed var(--line);background:none;color:var(--ink-dim);border-radius:8px;padding:6px 10px;font-size:12px;text-align:left}
 .bin-more:hover{color:var(--ink);border-color:var(--ink-faint)}
 body:not([data-view="board"]) #binSec{display:none}
-body.simple #view button[data-v="set"],body.simple #view button[data-v="decks"],body.simple #addSetBtn{display:none}
+body.simple #addSetBtn{display:none}
 #addBoxBtn{display:none}
 #sbToggle{display:none}
 /* phones: the board comes first; parts open in a sheet */
@@ -124,6 +145,19 @@ body.simple #view button[data-v="set"],body.simple #view button[data-v="decks"],
 .hub-card{display:flex;flex-direction:column;gap:6px;text-align:left;border:1px solid var(--line);background:var(--panel-2);border-radius:12px;padding:14px;min-height:118px}
 .hub-card:hover,.hub-card:focus-visible{border-color:var(--amber)}
 .hub-card b{font-size:15px}
+/* Surprise me: the fun one */
+.hub-surprise{display:flex;align-items:center;gap:16px;width:100%;text-align:left;margin:4px 0 10px;padding:14px 16px;border-radius:14px;border:0;cursor:pointer;color:#1a1206;
+  background:linear-gradient(110deg,#e2b84f,#e47b41 30%,#d76c9f 55%,#7392d8 80%,#4fb5a9);background-size:160% 100%;transition:background-position .6s ease,transform .15s ease}
+.hub-surprise:hover,.hub-surprise:focus-visible{background-position:100% 0;transform:translateY(-1px)}
+.hub-surprise b{display:block;font:800 22px/1.1 var(--f-display);letter-spacing:.02em;text-transform:uppercase}
+.hub-surprise span span{display:block;font-size:13px;font-weight:600;opacity:.85;margin-top:3px;line-height:1.35}
+.dice{flex:none;width:44px;height:44px;border-radius:10px;background:#fff;box-shadow:0 3px 0 #0003;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:7px;transform:rotate(-8deg);transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.dice i{width:7px;height:7px;border-radius:50%;background:#1a1206;align-self:center;justify-self:center}
+.dice i:nth-child(1){grid-area:1/1}.dice i:nth-child(2){grid-area:1/3}.dice i:nth-child(3){grid-area:2/2}.dice i:nth-child(4){grid-area:3/1}.dice i:nth-child(5){grid-area:3/3}
+.hub-surprise:hover .dice,.hub-surprise:focus-visible .dice{transform:rotate(200deg)}
+.sp-card.surprise{border:0;background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(110deg,#e2b84f,#e47b41,#d76c9f,#7392d8,#4fb5a9) border-box;border:2px solid transparent}
+.toast.surprise{background:linear-gradient(110deg,#e2b84f,#e47b41 40%,#d76c9f)}
+@media (prefers-reduced-motion: reduce){.hub-surprise,.dice{transition:none}}
 .hub-card span:not(.hub-ic){font-size:13px;color:var(--ink-dim);line-height:1.35}
 .hub-ic{font-size:18px;color:var(--amber);line-height:1}
 .hub-card.main{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--panel-2))}
@@ -557,7 +591,7 @@ svg.wires{position:absolute;inset:0;width:100%;height:100%;overflow:visible;poin
 .learning [data-midi].mapped{outline-style:solid}
 .learn-target{outline:3px solid var(--amber) !important}
 [data-midi].mapped::after{content:""}
-body.perform .side,body.perform .top,body.perform #view{display:none !important}
+body.perform .side,body.perform .top,body.perform #view,body.perform #subview{display:none !important}
 body.perform .main{grid-template-columns:1fr}
 body.perform .lv-top{padding-right:0}
 body.perform .app{grid-template-rows:1fr}
@@ -583,6 +617,9 @@ body.perform .app{grid-template-rows:1fr}
   .chips{display:none}
   .tabs{order:10;width:100%;justify-content:space-between}
   .tabs button{flex:1;padding:7px 2px;font-size:13px;min-width:0}
+  .subtabs{order:11;width:100%;margin-left:0;justify-content:center}
+  .subtabs::before{display:none}
+  .subtabs button{flex:1;max-width:140px}
   .perf,.live.pro .perf{grid-template-columns:1fr 1fr}
   .perf .perf-card:first-child{grid-column:1/-1}
   .nownext{grid-template-columns:1fr auto}
@@ -910,7 +947,9 @@ body.perform .app{grid-template-rows:1fr}
   .brand{font-size:0}.brand i{font-size:14px}
   .top .btn .lbl-long{display:none}
   .topline{gap:8px 10px;padding:8px 12px}
+  .savestate{padding:0 9px;gap:5px}.savestate .ss-t{display:none}.savestate.no i{display:none}.savestate.no b{border-left:0;padding-left:0;margin-left:0}
 }
+@media (max-width:1560px) and (min-width:701px){ .songname{width:116px} #practiceBtn .lbl-long{display:none} .subtabs button{padding:6px 7px} .subtabs button[aria-pressed="true"]::after{left:7px;right:7px} }
 
 /* ================= v54: dialogs, Live, phones, first steps ================= */
 /* dialogs: one rhythm for every pop-up: labelled fields with room to breathe, buttons on a footer line, main action last */
@@ -1129,10 +1168,15 @@ body.perform .app{grid-template-rows:1fr}
       <button class="play" id="play" title="Play / stop (Space)" aria-label="Play"></button>
       <button class="modechip" id="modeChip" title="What Play plays. It follows the tab you're on; click to change."></button>
       <nav class="tabs" id="view" aria-label="Sections">
+        <button data-g="make" title="Make your song: build tracks (Board), arrange them (Song), write the words (Lyrics)">Make</button>
+        <button data-g="mix" title="Balance the tracks, add shared reverb and echo, and Finish the sound">Mix</button>
+        <button data-g="play" title="Perform: scenes and Autopilot (Live), and in Pro your set list and DJ decks">Play</button>
+      </nav>
+      <nav class="subtabs" id="subview" aria-label="Pages">
         <button data-v="board" title="Build each track from boxes and cables">Board</button>
         <button data-v="song" title="Arrange which tracks play in each bar">Song</button>
         <button data-v="lyrics" title="Write words for each part of your song: syllables, rhymes and ideas">Lyrics</button>
-        <button data-v="mix" title="Balance the tracks, add shared reverb and echo">Mix</button>
+        <button data-v="mix" title="Balance the tracks">Mix</button>
         <button data-v="live" title="Perform with scenes, or let Autopilot play">Live</button>
         <button data-v="set" title="Your songs and your set list">Set</button>
         <button data-v="decks" title="Mix two songs by hand like a DJ">Decks</button>
@@ -1142,6 +1186,7 @@ body.perform .app{grid-template-rows:1fr}
         <button class="btn icon" id="redoBtn" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">↷</button>
       </div>
       <div class="spacer"></div>
+      <button class="savestate" id="saveState" aria-live="polite"></button>
       <div class="songchip" id="songChip"></div>
       <button class="btn" id="sbToggle" aria-expanded="false" aria-controls="songbar" aria-label="Tempo and key"><span class="sbt-long">Tempo &amp; key</span><span class="sbt-short">Key</span>&nbsp;▾</button>
       <button class="btn icon" id="moreBtn" aria-expanded="false" aria-label="More: save, new song, file, practice, help" title="More">⋯</button>
@@ -2912,8 +2957,8 @@ const STARTERS = {
   ] },
   blank: { label: 'Empty board', bpm: 100, root: 0, scale: 'major', prog: 'pop', swing: 0, tracks: () => [Object.assign(mkTrack('Track 1', C[0], 'harmony', []), { autoRole: true })] },
 };
-function stateFromStarter(key) {
-  const s = STARTERS[key];
+function stateFromStarter(key) { return stateFromSpec(STARTERS[key]); }
+function stateFromSpec(s) { // a starter's recipe → a song (Surprise me builds its own recipe)
   const st = { v: 1, origin: s.label.replace(/ \(.*\)$/, ''), bpm: s.bpm, root: s.root, scale: s.scale, prog: s.prog, swing: s.swing, mode: 'loop', view: 'board', tracks: s.tracks(), song: { bars: 16, loop: false, cells: {} } };
   st.cur = st.tracks[0].id;
   if (s.fx) st.fx = Object.assign({}, s.fx);
@@ -2960,15 +3005,18 @@ function autoArrange() { for (const t of S.tracks) arrangeTrack(t); }
 
 /* ---------------- persistence & undo ---------------- */
 let saveTimer = null;
+// what the Saved badge shows: lib = My songs ('pending' | 'saved' | 'error'), at = when it last saved, work = the browser's working copy kept
+const SAVE = { lib: 'saved', at: 0, work: true };
 function saveSoon() {
   if (typeof tlSoon === 'function') tlSoon(); // an edit: redraw where things play
   if (SETPLAY.on) return; // a set is playing: S is a copy of a set song, don't overwrite your project
+  if (typeof saveStatus === 'function' && boardLinked()) saveStatus('pending');
   clearTimeout(saveTimer); saveTimer = setTimeout(() => {
     if (updateRoles()) renderTracks();
     commitHistory();
-    try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); SAVE.work = true; } catch (e) { SAVE.work = false; } // the browser's working copy
     if (S.libRef) syncBoardToLibrary();
-    renderDirty();
+    renderDirty(); if (typeof renderSaveState === 'function') renderSaveState();
   }, 400);
 }
 /* "unsaved changes" = the musical content differs from the last starter / opened file / saved file.
@@ -2978,7 +3026,7 @@ let baseline = null;
 try { baseline = localStorage.getItem(STORE_KEY + '-baseline'); } catch (e) { }
 function setBaseline() { baseline = fingerprint(S); try { localStorage.setItem(STORE_KEY + '-baseline', baseline); } catch (e) { } renderDirty(); }
 function isDirty() { if (typeof LIB !== 'undefined' && boardLinked()) return false; /* songs in My songs save as you go */ return baseline !== null && fingerprint(S) !== baseline; }
-function renderDirty() { const b = $('#saveProj'); if (b) { const d = !SETPLAY.on && isDirty(); b.classList.toggle('dirty', d); b.title = d ? 'You have unsaved changes. Save this project as a file.' : 'Save this project as a file'; } }
+function renderDirty() { const b = $('#saveProj'); if (b) { const d = !SETPLAY.on && isDirty(); b.classList.toggle('dirty', d); b.title = d ? 'You have unsaved changes. Save this project as a file.' : 'Save this project as a file'; }  if (typeof renderSaveState === 'function') renderSaveState(); }
 function ask(title, text, actions) {
   const prev = document.activeElement;
   const bg = h('div', { class: 'modal-bg' });
@@ -3152,7 +3200,7 @@ function renderTop() {
   $('#bpm').value = S.bpm;
   $('#root').value = S.root; $('#scale').value = S.scale; renderProgSelect(); $('#swing').value = S.swing;
   renderModeChip();
-  $$('#view button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === S.view));
+  renderViewTabs();
   renderChips(S.prog, 0);
   renderTip();
 }
@@ -3200,7 +3248,8 @@ function initTop() {
   fm.addEventListener('click', closeMenu);
   document.addEventListener('click', e => { if (!fm.hidden && !e.target.closest('.menu-wrap')) closeMenu(); });
   fm.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); fb.focus(); } });
-  $$('#view button').forEach(b => b.onclick = () => setView(b.dataset.v));
+  $$('#view button').forEach(b => b.onclick = () => goGroup(b.dataset.g));
+  $$('#subview button').forEach(b => b.onclick = () => setView(b.dataset.v));
   $('#starterBtn').onclick = () => openStartHub(false);
   $$('#proSwitch button').forEach(b => b.onclick = () => { if ((b.dataset.pro === '1') !== proMode) setProMode(b.dataset.pro === '1'); });
   $('#addBoxBtn').onclick = openAddSheet;
@@ -3250,9 +3299,25 @@ function setMode(m) {
   if (playing && !SETPLAY.on && !DECKS.on && m === 'song') songStart = true;
   applyEnergyFilter();
 }
+/* Three rooms instead of seven tabs: Make (Board · Song · Lyrics), Mix, Play (Live, and Set · Decks in Pro).
+   Each room remembers the page you were last on. S.view still names the page itself. */
+const VIEW_GROUPS = { make: ['board', 'song', 'lyrics'], mix: ['mix'], play: ['live', 'set', 'decks'] };
+const viewGroup = v => Object.keys(VIEW_GROUPS).find(g => VIEW_GROUPS[g].includes(v)) || 'make';
+const viewLast = { make: 'board', mix: 'mix', play: 'live' };
+try { Object.assign(viewLast, JSON.parse(localStorage.getItem(STORE_KEY + '-views') || '{}')); } catch (e) { }
+const viewOk = v => proMode || (v !== 'set' && v !== 'decks');
+function goGroup(g) { const v = viewLast[g]; setView(VIEW_GROUPS[g] && VIEW_GROUPS[g].includes(v) && viewOk(v) ? v : VIEW_GROUPS[g][0]); }
+function renderViewTabs() {
+  const g = viewGroup(S.view);
+  $$('#view button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.g === g)));
+  let shown = 0;
+  $$('#subview button').forEach(b => { const on = viewGroup(b.dataset.v) === g && viewOk(b.dataset.v); b.hidden = !on; if (on) shown++; b.setAttribute('aria-pressed', String(b.dataset.v === S.view)); });
+  const sv = $('#subview'); if (sv) sv.hidden = shown < 2; // a room with one page needs no page tabs
+}
 function setView(v) {
   if (liveFading && v !== 'live') stopPlay();
   S.view = v;
+  viewLast[viewGroup(v)] = v; try { localStorage.setItem(STORE_KEY + '-views', JSON.stringify(viewLast)); } catch (e) { }
   if (v === 'song' || v === 'live') setMode(v);
   else if (v === 'lyrics') setMode('song'); // the words follow the song
   else if (v === 'board' && !(playing && S.mode === 'live')) setMode('loop'); // the Board loops your tracks (a running Live set keeps going)
@@ -3419,8 +3484,8 @@ let proMode = (() => { try { const v = localStorage.getItem(STORE_KEY + '-pro');
 function setProMode(on, quiet) {
   proMode = !!on; try { localStorage.setItem(STORE_KEY + '-pro', on ? '1' : '0'); } catch (e) { }
   document.body.classList.toggle('simple', !proMode);
-  if (!proMode && (S.view === 'set' || S.view === 'decks')) setView('board');
-  renderProSwitch(); renderBin(); if (S.view === 'live') renderLive(); renderSongChip();
+  if (!proMode && (S.view === 'set' || S.view === 'decks')) setView('live'); // stay in the Play room
+  renderProSwitch(); renderBin(); if (S.view === 'live') renderLive(); renderSongChip(); renderViewTabs();
   if (!quiet) toast(proMode ? 'Pro mode: every part, Set and Decks, and the expert Live controls.' : 'Simple mode: the essentials. Switch to Pro any time for more.');
 }
 function renderProSwitch() {
@@ -4107,7 +4172,7 @@ function renderSongBlocks(box) {
   for (const sc of L.scenes) pal.append(h('button', { class: 'chipbtn spal-b', title: `Add “${sc.name}” to the end of the song`, onclick: () => { snapshot(); S.song.blocks.push({ id: uid(), sceneId: sc.id, bars: 4 }); redo(); } },
     h('span', { class: 'dots' }, S.tracks.map(t => h('i', { class: sc.on[t.id] ? 'on' : '', style: `--tc:${t.color}` }))), sc.name));
   pal.append(h('button', { class: 'chipbtn', title: 'Make a new scene in Live, then come back', onclick: () => setView('live') }, '+ New scene…'));
-  if (!L.scenes.length) pal.append(h('span', { class: 'lhn' }, 'No scenes yet. Make some in the Live tab: each one is a group of tracks playing together.'));
+  if (!L.scenes.length) pal.append(h('span', { class: 'lhn' }, 'No scenes yet. Make some in Play → Live: each one is a group of tracks playing together.'));
   box.append(pal);
   // timeline
   const tl = h('div', { class: 'stl', role: 'list', 'aria-label': 'Song blocks' });
@@ -4367,10 +4432,11 @@ async function storageBoot() {
   if (set && Array.isArray(set.songs)) SET = set; else if (await idbSet('set', SET)) { try { localStorage.removeItem(SET_KEY); } catch (e) { } }
 }
 function persist(key, lsKey, value) {
-  if (IDB.ok) { idbSet(key, JSON.parse(JSON.stringify(value))).then(ok => { if (!ok) lsWrite(lsKey, value); }); return; }
-  lsWrite(lsKey, value);
+  const done = ok => { if (key === 'lib' && typeof saveStatus === 'function') saveStatus(ok ? 'saved' : 'error'); };
+  if (IDB.ok) { idbSet(key, JSON.parse(JSON.stringify(value))).then(ok => done(ok || lsWrite(lsKey, value))); return; }
+  done(lsWrite(lsKey, value));
 }
-function lsWrite(lsKey, value) { try { localStorage.setItem(lsKey, JSON.stringify(value)); } catch (e) { toast('Browser storage is full. Save some songs as files and delete others.'); } }
+function lsWrite(lsKey, value) { try { localStorage.setItem(lsKey, JSON.stringify(value)); return true; } catch (e) { toast('Browser storage is full. Save some songs as files and delete others.'); return false; } }
 
 /* ---------- Sampler sounds ---------- */
 const sampleLoads = {};
@@ -4560,6 +4626,7 @@ function openStarterPicker() {
     for (const g of ['All', ...STARTER_GROUPS]) chips.append(h('button', { class: 'chipbtn', 'aria-pressed': pickerGroup === g, onclick: () => { pickerGroup = g; draw(); } }, g));
     for (const [g, ks] of starterKeysByGroup()) {
       if (pickerGroup !== 'All' && pickerGroup !== g) continue;
+      if (g === STARTER_GROUPS[0]) grid.append(h('button', { class: 'sp-card surprise', id: 'spSurprise', onclick: () => { close(); surpriseMe(); } }, h('b', {}, 'Surprise me'), h('span', { class: 'sp-blurb' }, 'A random band, beat and style that work together. Different every time.'), h('span', { class: 'sp-meta' }, 'Any tempo · any key · ? tracks')));
       grid.append(h('h3', { class: 'sp-group' }, g));
       for (const k of ks) {
         const s = STARTERS[k], m = meta[k];
@@ -4594,6 +4661,8 @@ function openStartHub(welcome) {
   bg.append(h('div', { class: 'modal wide hub', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'hubTitle' },
     h('div', { class: 'sp-head' }, h('h2', { id: 'hubTitle' }, welcome ? 'Welcome to Stompbox Studio' : 'Start something'), h('button', { class: 'x', 'aria-label': 'Close', onclick: close }, '×')),
     h('p', { class: 'sp-intro' }, welcome ? 'Build music like a pedalboard: boxes make notes and sounds, cables connect them, everything stays in key. Pick a way to start, or just press play on the board behind this.' : 'Pick a way to begin. Your current song stays safe: you’ll be asked before anything replaces it.'),
+    h('button', { class: 'hub-surprise', id: 'hubSurprise', onclick: go(surpriseMe) }, h('span', { class: 'dice', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i'), h('i')),
+      h('span', {}, h('b', {}, 'Surprise me'), h('span', {}, 'A brand-new band every time: a random beat, sounds and style that all fit together. You never know what you’ll get.'))),
     h('div', { class: 'hub-grid' },
       card('hubStyles', 'play', 'Pick a style', 'Ready-made boards for lo-fi, house, rock, orchestra and more. Press play, then make it yours.', openStarterPicker, 'main'),
       card('hubAudio', 'wave', 'Analyze a song', 'Drop in an mp3 or wav: it finds the tempo, key, chords and sections, and builds a song to play along with.', pickSongFile),
@@ -4611,6 +4680,168 @@ function openStartHub(welcome) {
   bg.addEventListener('click', e => { if (e.target === bg) close(); });
   document.body.append(bg); document.addEventListener('keydown', onKey, true);
   bg.querySelector('.hub-card').focus();
+}
+/* =========================================================
+   Stompbox Studio — Surprise me
+   One press builds a brand-new song board: a feel (boom bap, house, trap, rock, drum & bass, jazz, reggaeton,
+   chill, cinematic, 8-bit…), then drums, bass, chords, maybe a pad or an arp, a lead and sometimes a wildcard,
+   each played by an instrument picked from the sounds that suit that feel, with a couple of pedals each.
+   The parts always fit (same key, chords and tempo; tempos and bass styles that suit the beat), but the mix of
+   sounds is different every time. The last 30 layouts are remembered, so you won't get the same one twice.
+   ========================================================= */
+const SUR = {
+  rnd: Math.random,
+  pick(a) { return a[Math.floor(SUR.rnd() * a.length)]; },
+  num(lo, hi, dp = 2) { const v = lo + SUR.rnd() * (hi - lo); return +v.toFixed(dp); },
+  int(lo, hi) { return Math.floor(lo + SUR.rnd() * (hi - lo + 1)); },
+  chance(p) { return SUR.rnd() < p; },
+};
+// sounds, by what they're good at; each feel says which of these "palettes" it can borrow from
+const SUR_SOUNDS = {
+  electronic: {
+    chords: [['synth', 'E-Piano', 'Keys'], ['synth', 'Organ', 'Organ'], ['synth', 'Warm Pad', 'Pad'], ['synth', 'Strings', 'Synth strings'], ['synth', 'Glass Pluck', 'Pluck']],
+    pad: [['synth', 'Warm Pad', 'Pad'], ['synth', 'Strings', 'Strings']],
+    arp: [['synth', 'Glass Pluck', 'Arp'], ['synth', 'Bell', 'Bells'], ['synth', 'Retro Lead', 'Arp']],
+    lead: [['synth', 'Retro Lead', 'Lead'], ['synth', 'Glass Pluck', 'Pluck'], ['synth', 'Bell', 'Bells'], ['synth', 'E-Piano', 'Keys lead']],
+    bass: [['synth', 'Deep Bass', 'Bass'], ['synth', 'Pick Bass', 'Bass']],
+  },
+  band: {
+    chords: [['inst', 'Upright Piano', 'Piano'], ['inst', 'Organ', 'Organ'], ['inst', 'Clean Electric Guitar', 'Guitar'], ['inst', 'Acoustic Guitar', 'Acoustic'], ['guitar', 'clean', 'Guitar']],
+    pad: [['inst', 'Organ', 'Organ']],
+    arp: [['inst', 'Clean Electric Guitar', 'Guitar picking'], ['inst', 'Upright Piano', 'Piano arp']],
+    lead: [['inst', 'Saxophone', 'Sax'], ['inst', 'Trumpet', 'Trumpet'], ['guitar', 'lead', 'Lead guitar'], ['inst', 'Upright Piano', 'Piano lead']],
+    bass: [['inst', 'Bass Guitar', 'Bass']],
+  },
+  orchestra: {
+    chords: [['inst', 'Pizzicato strings', 'Pizzicato'], ['inst', 'Harp', 'Harp'], ['inst', 'Upright Piano', 'Piano'], ['inst', 'Violins', 'Strings']],
+    pad: [['inst', 'Violins', 'Strings'], ['inst', 'French Horn', 'Horns']],
+    arp: [['inst', 'Harp', 'Harp'], ['inst', 'Pizzicato strings', 'Pizzicato'], ['inst', 'Glockenspiel', 'Glock']],
+    lead: [['inst', 'Flute', 'Flute'], ['inst', 'Clarinet', 'Clarinet'], ['inst', 'French Horn', 'Horn'], ['inst', 'Violins', 'Violin'], ['inst', 'Glockenspiel', 'Glock']],
+    bass: [['inst', 'Cellos', 'Cellos']],
+  },
+  world: {
+    chords: [['inst', 'Marimba', 'Marimba'], ['inst', 'Nylon Guitar', 'Nylon'], ['inst', 'Acoustic Guitar', 'Acoustic']],
+    pad: [['synth', 'Warm Pad', 'Pad']],
+    arp: [['inst', 'Marimba', 'Marimba'], ['inst', 'Nylon Guitar', 'Nylon picking']],
+    lead: [['inst', 'Flute', 'Flute'], ['inst', 'Nylon Guitar', 'Nylon'], ['inst', 'Marimba', 'Marimba']],
+    bass: [['inst', 'Bass Guitar', 'Bass']],
+  },
+  chip: {
+    chords: [['synth', 'Retro Lead', 'Chip chords']], pad: [['synth', 'Warm Pad', 'Pad']], arp: [['synth', 'Retro Lead', 'Chip arp']],
+    lead: [['synth', 'Retro Lead', 'Chip lead'], ['synth', 'Bell', 'Chip bells']], bass: [['synth', 'Retro Lead', 'Chip bass']],
+  },
+};
+// the feels: beats, tempos, keys, chords and bass styles that go together
+const SUR_FEELS = [
+  { id: 'boombap', name: 'Boom bap', grooves: ['Boom bap'], bpm: [84, 96], swing: [0.12, 0.3], scales: ['minor', 'dorian'], progs: ['jazzy', 'heart', 'falling', 'hypno'], bass: ['Syncopated', 'Root & fifth', 'Long notes'], kits: ['Studio (real)', 'Punchy'], pal: ['electronic', 'band', 'band', 'orchestra'], rhythms: ['Strum', 'Hold', 'Off-beat stabs'], flavors: ['Rich (7ths)', 'Rich (7ths)', 'Simple'], tape: 0.6, words: ['Dusty', 'Basement', 'Corner store', 'Rainy', 'Late-night'] },
+  { id: 'lofi', name: 'Lo-fi', grooves: ['Lo-fi', 'Half-time'], bpm: [70, 86], swing: [0.2, 0.35], scales: ['dorian', 'major', 'minor'], progs: ['jazzy', 'heart', 'pop'], bass: ['Long notes', 'Root & fifth'], kits: ['Studio (real)', 'Punchy'], pal: ['electronic', 'band', 'world'], rhythms: ['Strum', 'Hold', 'Arp 8ths'], flavors: ['Rich (7ths)', 'Spacious'], tape: 0.9, words: ['Sleepy', 'Window seat', 'Sunday', 'Homework', 'Cozy'] },
+  { id: 'house', name: 'House', grooves: ['Four on the floor'], bpm: [118, 128], swing: [0, 0.12], scales: ['minor', 'dorian', 'major'], progs: ['hypno', 'pop', 'heart', 'drone'], bass: ['Off-beat', 'Pulse', 'Octave bounce'], kits: ['Punchy', 'Tight'], pal: ['electronic', 'electronic', 'band', 'world'], rhythms: ['Off-beat stabs', 'Pulse', 'Hold'], flavors: ['Rich (7ths)', 'Simple', 'Spacious'], duck: true, layer: ['Sub boom', 'None'], words: ['Midnight', 'Neon', 'Warehouse', 'Rooftop', 'Disco ball'] },
+  { id: 'trap', name: 'Trap', grooves: ['Trap'], bpm: [132, 150], swing: [0, 0], scales: ['minor', 'phrygian'], progs: ['falling', 'epic', 'drone', 'hypno'], b808: true, kits: ['Tight', 'Big 808'], pal: ['electronic', 'orchestra', 'orchestra', 'world'], rhythms: ['Hold', 'Arp 8ths'], flavors: ['Simple'], layer: ['Sub boom', 'Thunder', 'None'], words: ['Ice', 'Shadow', 'Night drive', 'Villain', 'Crown'] },
+  { id: 'rock', name: 'Rock', grooves: ['Rock'], bpm: [104, 140], swing: [0, 0.05], scales: ['minor', 'major', 'mixolydian'], progs: ['anthem', 'pop', 'epic', 'falling'], bass: ['Pulse', 'Root & fifth', 'Octave bounce'], kits: ['Studio (real)'], pal: ['band', 'band', 'electronic'], rhythms: ['Strum', 'Chug 8ths'], flavors: ['Power (5ths)', 'Simple'], rock: true, words: ['Garage', 'Highway', 'Thunder', 'Stadium', 'Wildfire'] },
+  { id: 'dnb', name: 'Drum & bass', grooves: ['Breakbeat'], bpm: [166, 176], swing: [0, 0], scales: ['minor', 'dorian'], progs: ['epic', 'heart', 'falling', 'jazzy'], bass: ['Rolling'], kits: ['Studio (real)', 'Tight'], pal: ['electronic', 'electronic', 'orchestra', 'band'], rhythms: ['Hold', 'Off-beat stabs'], flavors: ['Rich (7ths)', 'Spacious'], duck: true, words: ['Liquid', 'Hyperspace', 'Jungle', 'Turbo', 'Comet'] },
+  { id: 'jazz', name: 'Jazz', grooves: ['Jazz ride'], bpm: [112, 150], swing: [0.35, 0.5], scales: ['major', 'dorian'], progs: ['jazzy', 'heart'], bass: ['Walking'], kits: ['Studio (real)'], pal: ['band', 'band', 'world', 'orchestra'], rhythms: ['Off-beat stabs', 'Strum'], flavors: ['Rich (7ths)'], words: ['Smoky', 'Blue', 'After hours', 'Velvet', 'Downtown'] },
+  { id: 'reggaeton', name: 'Reggaeton', grooves: ['Reggaeton'], bpm: [88, 100], swing: [0, 0.05], scales: ['minor'], progs: ['pop', 'heart', 'falling'], b808: true, kits: ['Tight', 'Punchy'], pal: ['world', 'world', 'electronic'], rhythms: ['Arp 8ths', 'Off-beat stabs', 'Hold'], flavors: ['Simple'], layer: ['Sub boom', 'None'], words: ['Beach', 'Tropical', 'Summer', 'Fiesta', 'Palm tree'] },
+  { id: 'cinematic', name: 'Cinematic', grooves: ['Half-time'], bpm: [70, 92], swing: [0, 0.05], scales: ['minor', 'lydian', 'minor'], progs: ['epic', 'heart', 'falling'], bass: ['Long notes', 'Pulse'], kits: ['Studio (real)', 'Big 808'], pal: ['orchestra', 'orchestra', 'electronic'], rhythms: ['Hold', 'Arp 8ths', 'Pulse'], flavors: ['Spacious', 'Simple'], layer: ['Thunder', 'Roar', 'None'], big: true, words: ['Dragon', 'Kingdom', 'Space', 'Storm', 'Hero’s'] },
+  { id: 'arcade', name: '8-bit', grooves: ['Rock', 'Four on the floor'], bpm: [136, 160], swing: [0, 0], scales: ['major', 'lydian', 'mixolydian'], progs: ['anthem', 'pop', 'epic'], bass: ['Pulse', 'Octave bounce'], kits: ['Tight'], pal: ['chip', 'chip', 'electronic'], rhythms: ['Arp 16ths', 'Pulse'], flavors: ['Simple'], chip: true, words: ['Pixel', 'Level 9', 'Boss', 'Power-up', 'Bonus'] },
+  { id: 'funk', name: 'Funk', grooves: ['Four on the floor', 'Rock', 'Breakbeat'], bpm: [100, 116], swing: [0.08, 0.2], scales: ['dorian', 'mixolydian'], progs: ['hypno', 'jazzy', 'drone'], bass: ['Octave bounce', 'Syncopated'], kits: ['Studio (real)'], pal: ['band', 'band', 'electronic', 'world'], rhythms: ['Off-beat stabs', 'Strum'], flavors: ['Rich (7ths)'], words: ['Groovy', 'Roller rink', 'Funky', 'Sunset', 'Bell-bottom'] },
+];
+const SUR_NOUNS = ['beat', 'jam', 'groove', 'tune', 'ride', 'dream', 'party', 'quest', 'mission', 'story'];
+const SUR_KEYS = [0, 2, 4, 5, 7, 9, 10, 1, 3, 6, 8, 11]; // every key, roughly most guitar-friendly first
+
+function surFx(kind, f, used) { // one pedal, with tasteful settings for that kind of track
+  const P = SUR.pick, N = SUR.num;
+  const opts = {
+    reverb: () => ['reverb', { space: N(0.3, 0.75), mix: N(0.15, 0.35) }],
+    delay: () => ['delay', { time: P(['1/8', '1/8 dotted', '1/4']), repeats: N(0.2, 0.45), mix: N(0.12, 0.28) }],
+    chorus: () => ['chorus', { width: N(0.3, 0.7), speed: N(0.25, 0.5), mix: N(0.25, 0.45) }],
+    filter: () => ['filter', { bright: N(0.45, 0.65), wobble: N(0.2, 0.45), reso: N(0.15, 0.4), rate: P(['2 bars', '1 bar', 'Beat']) }],
+    lofi: () => ['lofi', { wow: N(0.1, 0.4), crush: N(0.05, 0.25), muffle: N(0.25, 0.5) }],
+    dist: () => ['dist', { grit: N(0.15, 0.3), tone: N(0.35, 0.5), mix: N(0.25, 0.45) }],
+  };
+  const pools = { lead: ['delay', 'reverb', 'delay', 'chorus'], chords: ['reverb', 'chorus', 'filter', 'delay'], pad: ['reverb', 'chorus', 'filter'], arp: ['delay', 'filter', 'reverb'], bass: ['dist', 'chorus'] };
+  let pool = (pools[kind] || ['reverb']).filter(k => !used.has(k));
+  if (f.tape && kind !== 'bass' && SUR.chance(f.tape * 0.6) && !used.has('lofi')) pool = ['lofi'];
+  if (!pool.length) return null;
+  const k = P(pool); used.add(k); return opts[k]();
+}
+// one sound (an instrument box, with an amp for an electric guitar) for a track
+function surSound(entry, f, role) {
+  const [type, what] = entry, N = SUR.num;
+  if (type === 'synth') return [['synth', Object.assign({ preset: what }, what === 'Retro Lead' && role === 'bass' ? { shift: '-1', bright: 0.5 } : {}, role === 'pad' ? { bright: N(0.3, 0.45) } : {})]];
+  if (type === 'guitar') return what === 'lead'
+    ? [['guitar', { pickup: 'Neck (warm)', double: 'Off', mute: 0, feel: 0.5 }], ['amp', { model: SUR.pick(['British Stack', 'Tweed Breakup', 'British Chime']), gain: N(0.5, 0.7), bass: 0.45, mid: 0.65, treble: 0.5, vol: 0.5 }]]
+    : [['guitar', { pickup: SUR.pick(['Bridge (bright)', 'Middle']), double: 'On', mute: f.rock ? N(0.2, 0.4) : 0.1, feel: 0.55 }], ['amp', f.rock ? { model: SUR.pick(['British Stack', 'Modern High Gain']), gain: N(0.5, 0.65), bass: 0.6, mid: 0.6, treble: 0.5, vol: 0.5 } : { model: SUR.pick(['American Clean', 'British Chime', 'Jazz Clean']), gain: N(0.2, 0.35), bass: 0.45, mid: 0.5, treble: 0.6, vol: 0.5 }]];
+  return [['inst', Object.assign({ inst: what }, what === 'Bass Guitar' ? { bright: N(0.4, 0.7), len: N(0.3, 0.45) } : {})]];
+}
+// levels that sit well together (like the hand-made starters)
+const SUR_VOL = { drums: 0.8, bass: 0.72, chords: 0.56, pad: 0.5, arp: 0.46, lead: 0.58, extra: 0.48 };
+// some sounds are naturally louder or quieter than others in a given job: a small trim keeps every track audible
+const SUR_TRIM = { 'Bass Guitar': { bass: 0.85 }, 'Upright Piano': { lead: 0.72, arp: 0.85 }, 'E-Piano': { lead: 1.3 }, 'Clean Electric Guitar': { arp: 1.3, chords: 1.1 }, 'Violins': { pad: 1.2, chords: 1.15 }, 'Strings': { pad: 1.15 }, 'Glockenspiel': { lead: 0.85 } };
+// plucked and struck sounds die away, so they never just "hold" a chord
+const SUR_PLUCKED = new Set(['Glass Pluck', 'Pizzicato strings', 'Harp', 'Marimba', 'Upright Piano', 'Acoustic Guitar', 'Nylon Guitar', 'Clean Electric Guitar', 'Bell', 'Glockenspiel', 'clean']);
+function surpriseSpec() {
+  const P = SUR.pick, N = SUR.num, f = P(SUR_FEELS);
+  const groove = P(f.grooves), scale = P(f.scales), root = P(SUR_KEYS.slice(0, SUR.chance(0.7) ? 7 : 12));
+  const tracks = [], colors = TRACK_COLORS.slice().sort(() => SUR.rnd() - 0.5);
+  const taken = new Set(); // each sound once per song, so you hear a real band
+  const sound = job => { let e; for (let i = 0; i < 8; i++) { e = P(SUR_SOUNDS[P(f.pal)][job]); if (!taken.has(e[1])) break; } taken.add(e[1]); return e; };
+  const name = (base) => { let n = base, i = 2; while (tracks.some(t => t.name === n)) n = base + ' ' + i++; return n; };
+  const add = (kind, role, nm, chain, extraFx = 1) => {
+    const fxUsed = new Set(), fx = [];
+    for (let i = 0; i < extraFx; i++) { const e = surFx(kind, f, fxUsed); if (e) fx.push(e); }
+    const snd = chain.map(c => c[1] && (c[1].preset || c[1].inst)).find(Boolean), trim = (SUR_TRIM[snd] || {})[kind] || 1;
+    const out = { vol: +Math.min(0.88, SUR_VOL[kind] * trim * N(0.92, 1.05)).toFixed(2) };
+    if (f.duck && kind !== 'drums') out.duck = kind === 'bass' ? N(0.35, 0.55) : N(0.15, 0.4);
+    const t = { name: name(nm), role, kind, chain: [...chain, ...fx, ['out', out]] }; tracks.push(t); return t;
+  };
+  // drums
+  const kit = P(f.kits), layer = f.layer ? P(f.layer) : 'None';
+  add('drums', 'drums', P(['Drums', 'Beat', 'Drums']), [['groove', { style: groove, busy: N(0.45, 0.8), fills: N(0.2, 0.45), human: groove === 'Trap' ? N(0.05, 0.2) : N(0.2, 0.5) }],
+    ['drums', Object.assign({ kit, punch: N(0.5, 0.75), snap: N(0.35, 0.65), shimmer: N(0.35, 0.65) }, layer !== 'None' ? { layer, layAmt: N(0.15, 0.3), layLen: N(0.25, 0.45) } : {})],
+    ...(SUR.chance(0.6) ? [['comp', { squash: N(0.35, 0.55), boost: N(0.2, 0.35) }]] : []), ...(f.tape && SUR.chance(f.tape) ? [['lofi', { wow: N(0.05, 0.15), crush: N(0.1, 0.3), muffle: N(0.25, 0.45) }]] : [])], 0);
+  // bass: an 808 that follows the kick, or a bassline
+  if (f.b808 && SUR.chance(0.8)) add('bass', 'bass', '808', [['groove', { style: groove, busy: 0.2, fills: 0, human: 0 }], ['synth', { preset: '808 Bass' }]], SUR.chance(0.5) ? 1 : 0);
+  else { const s = sound('bass'); add('bass', 'bass', s[2] === 'Bass' && f.id === 'dnb' ? 'Sub bass' : s[2], [['bass', { style: P(f.bass || ['Root & fifth']), octave: s[0] === 'synth' && s[1] === 'Deep Bass' && SUR.chance(0.5) ? '1' : '2' }], ...surSound(s, f, 'bass')], s[0] === 'synth' && SUR.chance(0.3) ? 1 : 0); }
+  // chords
+  const cs = sound('chords'), rhythm = SUR_PLUCKED.has(cs[1]) ? P(f.rhythms.filter(r => r !== 'Hold').concat(['Strum'])) : P(f.rhythms), guitarish = cs[0] === 'guitar' || /Guitar/.test(cs[1]);
+  add('chords', 'harmony', cs[2], [['chords', { rhythm: f.rock && guitarish ? P(['Strum', 'Chug 8ths']) : rhythm, flavor: f.rock && cs[0] === 'guitar' ? 'Power (5ths)' : P(f.flavors.filter(x => x !== 'Power (5ths)')) || 'Simple', octave: f.rock && cs[0] === 'guitar' ? '2' : '3' }], ...surSound(cs, f, 'chords')], SUR.int(1, 2));
+  // a pad or an arp (or both, for the big feels)
+  if (SUR.chance(f.big ? 0.9 : 0.55)) { const s = sound('pad'); add('pad', 'harmony', s[2], [['chords', { rhythm: 'Hold', flavor: P(['Spacious', 'Simple']), octave: P(['3', '4']) }], ...surSound(s, f, 'pad')], 1); }
+  if (SUR.chance(f.chip ? 0.8 : 0.4)) { const s = sound('arp'); add('arp', 'harmony', s[2], [['chords', { rhythm: P(['Arp 8ths', 'Arp 16ths']), flavor: 'Simple', octave: '4' }], ...surSound(s, f, 'arp')], 1); }
+  // the lead tune
+  if (SUR.chance(0.9)) { const s = sound('lead'); add('lead', 'lead', s[2], [['melody', { density: N(0.3, 0.6), range: P(['Mid', 'Mid', 'High']), seed: SUR.int(1, 999) }], ...surSound(s, f, 'lead')], SUR.int(1, 2)); }
+  // the wildcard: a second voice answering the first, from anywhere
+  if (SUR.chance(0.3)) { let s; for (let i = 0; i < 8; i++) { s = P(SUR_SOUNDS[P(Object.keys(SUR_SOUNDS).filter(k => k !== 'chip' || f.chip))].lead); if (!taken.has(s[1])) break; } taken.add(s[1]); add('extra', 'lead', s[2], [['melody', { density: N(0.2, 0.35), range: 'High', seed: SUR.int(1, 999) }], ...surSound(s, f, 'lead')], 1); }
+  // scenes that tell a little story with whatever came out
+  const of = (...kinds) => tracks.filter(t => kinds.includes(t.kind)).map(t => t.name);
+  const all = tracks.map(t => t.name), soft = of('chords', 'pad', 'arp', 'lead', 'extra');
+  const scenes = [
+    [P(['Intro', 'Opening', 'Wake up']), of('chords', 'pad').length ? of('chords', 'pad') : of('chords')],
+    [P(['Groove', 'Verse', 'Beat comes in']), of('drums', 'bass', 'chords')],
+    [P(['Full', 'Chorus', 'Hook']), all],
+    [P(['Breakdown', 'Quiet part', 'Daydream']), soft.length ? soft : of('chords')],
+    [P(['Big finish', 'Last chorus', 'Drop']), all, SUR.chance(0.5) ? { lift: P([1, 2]) } : {}],
+    [P(['Outro', 'Fade', 'Goodnight']), of('chords', 'drums')],
+  ].filter(s => s[1].length);
+  const title = P(f.words) + ' ' + P(SUR_NOUNS);
+  const sig = [f.id, groove, ...tracks.map(t => t.chain.filter(c => ['synth', 'inst', 'guitar'].includes(c[0])).map(c => c[1].preset || c[1].inst || c[0]).join('/'))].join('|');
+  return { sig, spec: { label: title.replace(/^./, c => c.toUpperCase()), surprise: f.name, bpm: SUR.int(f.bpm[0], f.bpm[1]), root, scale, prog: P(f.progs), swing: N(f.swing[0], f.swing[1]), fx: f.tape ? { hiss: N(0.05, 0.12) } : undefined,
+    tracks: () => tracks.map((t, i) => mkTrack(t.name, colors[i % colors.length], t.role, t.chain)), scenes } };
+}
+// never the same layout twice in a row (the last 30 are remembered)
+function surpriseState() {
+  let seen = []; try { seen = JSON.parse(localStorage.getItem(STORE_KEY + '-surprise') || '[]'); } catch (e) { }
+  let r = surpriseSpec(); for (let i = 0; i < 20 && seen.includes(r.sig); i++) r = surpriseSpec();
+  seen.push(r.sig); try { localStorage.setItem(STORE_KEY + '-surprise', JSON.stringify(seen.slice(-30))); } catch (e) { }
+  const st = stateFromSpec(r.spec); st.origin = r.spec.label; return { st, spec: r.spec };
+}
+function surpriseMe() {
+  guardUnsaved('Surprise me', () => {
+    snapshot(); const { st, spec } = surpriseState(); setState(st); setBaseline(); renderSongChip();
+    if (typeof setView === 'function' && S.view !== 'board') setView('board');
+    toast(`Surprise! “${spec.label}”: ${spec.surprise}, ${keyName(spec.root, spec.scale)}, ${spec.bpm} BPM. Press play.`, { label: 'Surprise me again', fn: surpriseMe });
+    const sb = document.querySelector('.toast'); if (sb) sb.classList.add('surprise');
+  });
 }
 /* =========================================================
    Stompbox Studio — Set list (several songs, DJ transitions, key matching)
@@ -4954,6 +5185,26 @@ function suggestName() {
   let name = base, i = 2; while (LIB.songs.some(x => x.name === name)) name = `${base} ${i++}`;
   return name;
 }
+/* ---- the Saved badge in the top bar: always says whether your song is kept ----
+   In My songs: "Saving…" then "✓ Saved". Not kept yet: "● Not saved · Save" (one press keeps it).
+   If the browser refuses to store it (full storage), it turns red and offers to save it as a file. */
+function saveStatus(st) { SAVE.lib = st; if (st === 'saved') SAVE.at = Date.now(); renderSaveState(); }
+function renderSaveState() {
+  const b = $('#saveState'); if (!b) return;
+  const set = (cls, html, title, fn) => { b.className = 'savestate ' + cls; b.innerHTML = html; b.title = title; b.setAttribute('aria-label', title); b.onclick = fn; };
+  if (SETPLAY.on) { b.hidden = true; return; } b.hidden = false;
+  const linked = boardLinked(), when = SAVE.at ? new Date(SAVE.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+  if (linked && SAVE.lib === 'error' || !SAVE.work && !linked) return set('err', '<i></i><span class="ss-t">Not saved!</span>', 'Your browser would not store this song (its storage is probably full). Press to save it as a file so nothing is lost.', saveTrouble);
+  if (linked && SAVE.lib === 'pending') return set('busy', '<i></i><span class="ss-t">Saving…</span>', 'Saving your changes into My songs', null);
+  if (linked) return set('ok', '<i></i><span class="ss-t">Saved</span>', `Every change saves into My songs by itself${when ? ' (last saved ' + when + ')' : ''}.`, () => toast(`“${libSong(S.libRef).name}” is safe in My songs${when ? ', saved at ' + when : ''}. Find it again under New → My songs.`));
+  const changed = typeof isDirty === 'function' && isDirty();
+  set('no' + (changed ? ' changed' : ''), '<i></i><span class="ss-t">Not saved</span><b>Save</b>', 'This song isn’t kept yet. Press to save it to My songs; every change after that saves by itself.', () => saveBoardToLibrary());
+  b.querySelector('b').id = 'saveLibBtn';
+}
+function saveTrouble() {
+  ask('Your song isn’t saved', 'The browser wouldn’t store your latest changes; usually its storage is full (long recordings in old songs take the most room). Save this song as a file now so nothing is lost. Then, under New → My songs, delete songs you no longer need.',
+    [{ label: 'Save as a file', primary: true, fn: () => saveProject() }, { label: 'Try again', fn: () => { SAVE.work = true; if (boardLinked()) { saveStatus('pending'); syncBoardToLibrary(); } saveSoon(); } }, { label: 'Close' }]);
+}
 // Called from saveSoon: keep the library song and every set entry made from it up to date.
 function syncBoardToLibrary() {
   const L = libSong(S.libRef); if (!L) return;
@@ -5027,10 +5278,9 @@ function renderSongChip() {
     const nm = h('input', { class: 'field songname', id: 'songName', value: L.name, maxlength: 40, 'aria-label': 'Song name', title: 'Rename this song' });
     nm.onchange = () => renameLib(L, nm.value);
     nm.onkeydown = e => { if (e.key === 'Enter') nm.blur(); e.stopPropagation(); };
-    box.append(nm, h('span', { class: 'saved', title: 'Every change is saved into My songs' }, '✓ Saved'));
-  } else {
-    box.append(h('button', { class: 'btn', id: 'saveLibBtn', title: 'This song isn’t kept yet. Save it to My songs and every change after that saves by itself.', onclick: () => saveBoardToLibrary() }, h('span', { class: 'dot-unsaved' }), 'Save to My songs'));
+    box.append(nm);
   }
+  renderSaveState();
   box.append(h('button', { class: 'btn primary', id: 'addSetBtn', disabled: !!inSet, title: inSet ? 'Already in your set list' : 'Put this song in your set list', onclick: addBoardToSet }, inSet ? '✓ In your set' : '+ Add to set'));
 }
 
@@ -9773,7 +10023,7 @@ function renderLyrics() {
     h('div', {}, h('h2', { class: 'lh' }, 'Lyrics'), h('p', { class: 'lhn' }, 'Write words under each part of your song. The numbers show syllables per line: green fits the bars, amber is a squeeze or a stretch. Click in a line to see rhymes for its last word.')),
     h('div', { class: 'ly-tools' }, h('label', { class: 'lbl' }, 'Each line lasts ', per), h('button', { class: 'btn', id: 'lySing', title: 'A built-in robot voice says your words over the song, in tune with the chords (free, works offline)', onclick: hearItSung }, ico('robot'), 'Hear the words'), copyBtn, askAll)));
   const main = h('div', { class: 'ly-main' }), side = h('aside', { class: 'ly-side', id: 'lySide' });
-  if (!parts.length || songBars() === 0) main.append(h('p', { class: 'set-help' }, 'Arrange your song first (Song tab), then write words for each part here.'));
+  if (!parts.length || songBars() === 0) main.append(h('p', { class: 'set-help' }, 'Arrange your song first (Make → Song), then write words for each part here.'));
   parts.forEach((p, i) => main.append(lyricPart(parts, i)));
   box.append(h('div', { class: 'ly-grid' }, main, side));
   renderRhymes();
@@ -10451,11 +10701,11 @@ const TOUR = [
   { sel: '.node .port.out', view: 'board', title: 'Wire it up', text: 'Drag from a plug on the right of a box to a plug on the left of another. Yellow cables carry notes, red cables carry sound. Click a cable to unplug it.' },
   { sel: '#bin, #addBoxBtn', view: 'board', title: 'Add parts', text: 'Brains decide the notes, Instruments make the sound, Amps, Mics and Effects change it. Type to find one (“reverb”, “record”). New parts plug themselves in where they belong.' },
   { sel: '#songbar', title: 'Song settings', text: 'Tempo, key, mood and chords for the whole song. Every track follows them.' },
-  { sel: '#view', title: 'The rooms', text: () => 'Board builds tracks. Song arranges them into a song. Lyrics is where the words go. Mix balances them. Live performs with scenes and Autopilot.' + (proMode ? ' Set holds your songs and set list. Decks mixes two songs like a DJ.' : ' Pro mode adds Set (your set list) and Decks (DJ mixing).') },
+  { sel: '#view', title: 'The rooms', text: () => 'Three rooms. Make: Board builds tracks, Song arranges them, Lyrics holds the words. Mix balances the tracks and finishes the sound. Play performs with scenes and Autopilot.' + (proMode ? ' Play also holds Set (your set list) and Decks (DJ mixing).' : ' Pro mode adds Set and Decks to Play.') },
   { sel: '#modeChip', title: 'What Play plays', text: 'Loop repeats your tracks, Song plays the arrangement start to end, Live follows your scenes. It follows the room you’re in.' },
   { sel: '#starterBtn', title: 'Start something new', text: 'Pick a style, copy a song from tabs, chords or a MIDI file, or record yourself over the music.' },
   { sel: '#proSwitch', title: 'Simple or Pro', text: 'Simple keeps things calm. Pro adds the set list, DJ decks, expert Live controls and more parts. Switch any time.' },
-  { sel: '#songChip', title: 'Keep your song', text: 'Save to My songs. After that every change saves by itself. Find your songs again under New.' },
+  { sel: '#saveState', title: 'Keep your song', text: 'This badge always tells you if your song is kept. Press Save once to put it in My songs; after that every change saves by itself and the badge says Saved. Find your songs again under New.' },
   { sel: '.undo', title: 'Undo anything', text: 'Undo and redo step through every change (Ctrl+Z, Ctrl+Shift+Z). Press ? any time to see this tour again.' },
 ];
 // the first match that is actually on screen (the parts bin is a button on phones)
